@@ -1,3 +1,5 @@
 *.db-shm
 *.db-wal
 *.db
+docker-compose.yml
+*.sh
