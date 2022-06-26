@@ -15,7 +15,6 @@ helper sqlite => sub {
 
 app->sqlite->auto_migrate(1)->migrations->from_data;
 
-
 plugin Yancy => {
 	backend => { Sqlite => app->sqlite },
 	editor  => {
@@ -68,11 +67,10 @@ app->yancy->create(
 	users => {
 		email    => 'admin@revacomm.com',
 		password => "$ENV{ADMIN_PASS}",
-        dod_id => 123456789,
+		dod_id   => 123456789,
 		is_admin => 1
 	}
 ) unless app->yancy->get( 'users', 'admin@revacomm.com' )->{email};
-
 
 get '/logout' => sub ($c) {
 	$c->session( expires => 1 );
@@ -103,10 +101,10 @@ sub proxy ( $c, $uri ) {
 			usercertificate => "Tron.Developer."
 				. $c->yancy->auth->current_user->{dod_id}
 		},
-		secret => 'secret' 
+		secret => 'secret'
 	);
 
-    $request->headers->add( 'Authorization', 'Bearer ' . jwt->encode );
+	$request->headers->add( 'Authorization', 'Bearer ' . $jwt->encode );
 	my $tx = $ua->start( Mojo::Transaction::HTTP->new( req => $request ) );
 
 	$c->res( $tx->res );
@@ -124,6 +122,10 @@ any '/puckboard-api' => sub ($c) {
 
 any '/puckboard-api/**' => sub ($c) {
 	proxy( $c, $ENV{BACKEND_URI} );
+};
+
+any '/**' => sub ($c) {
+	proxy( $c, $ENV{FRONTEND_URI} );
 };
 
 any '*' => sub ($c) {
