@@ -6,5 +6,5 @@ RUN cpanm install Mojo::SQLite
 RUN cpanm install Yancy
 RUN cpanm install Mojo::JWT
 RUN cpanm IO::Socket::SSL
-EXPOSE 443
-CMD perl gateway.pl daemon -m production -l https://*:443?cert=example.cert&key=example.key
+EXPOSE 3000
+CMD perl gateway.pl daemon -m production -l https://*:3000
