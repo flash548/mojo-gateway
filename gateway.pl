@@ -104,7 +104,14 @@ sub proxy ( $c, $uri ) {
 	$c->res->headers->location( $tx->res->headers->location ) if $tx->res->code;
 	$c->res->headers( $tx->res->headers->clone );
     $c->res->headers->content_type( $tx->res->headers->content_type );
-	$c->res->body( $tx->res->body );
+
+	my $body = $tx->res->body;
+
+	# replace the api base url if to a relative one if requesting the environment.js file
+	if ($c->req->url->path =~ m/environment\.js/) {
+		$body =~ s!http://localhost:8080/puckboard-api/v1!/puckboard-api/v1!;
+	}
+	$c->res->body( $body );
 	$c->rendered;
 }
 
