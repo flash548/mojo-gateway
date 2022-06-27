@@ -3,3 +3,5 @@
 *.db
 docker-compose.yml
 *.sh
+.idea/
+.docker/
