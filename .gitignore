@@ -5,3 +5,5 @@ docker-compose.yml
 *.sh
 .idea/
 .docker/
+*.crt
+*.key
