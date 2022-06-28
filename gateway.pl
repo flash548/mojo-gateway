@@ -3,6 +3,7 @@ use Mojolicious::Lite -signatures;
 use Mojo::SQLite;
 use Mojo::JWT;
 
+# you're gonna want to change this...
 use constant SECRET => 'secret';
 
 my $ua = Mojo::UserAgent->new;
@@ -69,6 +70,7 @@ app->yancy->plugin(
 );
 
 # create the admin user if it doesn't exist
+#  initial admin password will be created from ENV VAR 'ADMIN_PASS'
 app->yancy->create(
 	users => {
 		email    => 'admin@revacomm.com',
