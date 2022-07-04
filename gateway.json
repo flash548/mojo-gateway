@@ -1,0 +1,7 @@
+{
+  "secret": "<%= $ENV{SECRET} // 'change_this' %>",
+  "admin_user": "<%= $ENV{ADMIN_USER} // 'admin@admin.com' %>",
+  "admin_pass": "<%= $ENV{ADMIN_PASS} // 'password' %>",
+  "backend_uri":"<%= $ENV{BACKEND_URI} // 'http://localhost:9000/' %>",
+  "frontend_uri": "<%= $ENV{FRONTEND_URI} // 'http://localhost:8080/' %>"
+}

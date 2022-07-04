@@ -3,18 +3,25 @@ use Mojolicious::Lite -signatures;
 use Mojo::SQLite;
 use Mojo::JWT;
 
-use constant SECRET => 'secret';
+my $config = plugin 'JSONConfig';
+my $ua     = Mojo::UserAgent->new;
 
-my $ua = Mojo::UserAgent->new;
+app->secrets([$config->{secret}]);
 
 # sqlite3 db connection
 helper sqlite => sub {
-	state $path   = app->home->child('data.db');
-	state $sqlite = Mojo::SQLite->new( 'sqlite:' . $path );
-	return $sqlite;
+	if ( !defined( $config->{test} ) ) {
+		state $path   = app->home->child('data.db');
+		state $sqlite = Mojo::SQLite->new( 'sqlite:' . $path );
+		return $sqlite;
+	}
+	else {
+		state $sqlite = Mojo::SQLite->new(':temp:');
+		return $sqlite;
+	}
 };
 
-# do migrations (see bottom of file __DATA__) section
+# do migrations (see bottom of file __DATA__ section)
 app->sqlite->auto_migrate(1)->migrations->from_data;
 
 # initialize Yancy using sqlite3, editor enabled (requiring admin field True)
@@ -71,20 +78,20 @@ app->yancy->plugin(
 # create the admin user if it doesn't exist
 app->yancy->create(
 	users => {
-		email    => 'admin@revacomm.com',
-		password => "$ENV{ADMIN_PASS}",
+		email    => "$config->{admin_user}",
+		password => "$config->{admin_pass}",
 		dod_id   => 123456789,
 		is_admin => 1
 	}
-) unless app->yancy->get( 'users', 'admin@revacomm.com' )->{email};
+) unless app->yancy->get( 'users', "$config->{admin_user}" )->{email};
 
 # proxy method - takes the request object ($c) and the URL ($uri)
 #   makes sure the $uri has no backslash on it
 sub proxy ( $c, $uri ) {
 	my $request = $c->req->clone;
 
-    # remove the trailing slash if present
-    $uri =~ s!/$!!;  
+	# remove the trailing slash if present
+	$uri =~ s!/$!!;
 	$request->url( Mojo::URL->new( $uri . $c->req->url ) );
 
 	my $jwt = Mojo::JWT->new(
@@ -103,15 +110,15 @@ sub proxy ( $c, $uri ) {
 	$c->res->code( $tx->res->code );
 	$c->res->headers->location( $tx->res->headers->location ) if $tx->res->code;
 	$c->res->headers( $tx->res->headers->clone );
-    $c->res->headers->content_type( $tx->res->headers->content_type );
+	$c->res->headers->content_type( $tx->res->headers->content_type );
 
 	my $body = $tx->res->body;
 
 	# replace the api base url if to a relative one if requesting the environment.js file
-	if ($c->req->url->path =~ m/environment\.js/) {
+	if ( $c->req->url->path =~ m/environment\.js/ ) {
 		$body =~ s!http://localhost:8080/puckboard-api/v1!/puckboard-api/v1!;
 	}
-	$c->res->body( $body );
+	$c->res->body($body);
 	$c->rendered;
 }
 
@@ -138,23 +145,23 @@ under '/' => sub ($c) {
 };
 
 any '/' => sub ($c) {
-    proxy( $c, $ENV{FRONTEND_URI} );
+	proxy( $c, $config->{frontend_uri} );
 };
 
 any '/puckboard-api' => sub ($c) {
-	proxy( $c, $ENV{BACKEND_URI} );
+	proxy( $c, $config->{backend_uri} );
 };
 
 any '/puckboard-api/**' => sub ($c) {
-	proxy( $c, $ENV{BACKEND_URI} );
+	proxy( $c, $config->{backend_uri} );
 };
 
 any '/**' => sub ($c) {
-	proxy( $c, $ENV{FRONTEND_URI} );
+	proxy( $c, $config->{frontend_uri} );
 };
 
 any '*' => sub ($c) {
-	proxy( $c, $ENV{FRONTEND_URI} );
+	proxy( $c, $config->{frontend_uri} );
 };
 
 # Remove the default 'Server' header
