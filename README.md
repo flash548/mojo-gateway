@@ -5,6 +5,8 @@ this service can sit on the edge of your network and authenticate requests based
 the request's cookie reveals they have/are authenticated, then the request is then routed (along with a JWT) to the path determined
 in the service's router.
 
+![Example usage](./example.png)
+
 In its current state, the service is very feature-less and does not support user registration yet (on purpose).  The user login
 is handled by the [Yancy](https://metacpan.org/pod/Yancy) Mojolicious CMS library which has a ton of customizable options.  But in 
 this service we just use the [Yancy::Plugin::Auth](https://metacpan.org/pod/Yancy::Plugin::Auth) to save not having to implement 
