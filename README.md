@@ -30,7 +30,7 @@ Example usage in a docker-compose file.  The key env vars the gateway service ne
 proxy traffic to (what other microservice to proxy to).
 
 By default the gateway, forces any request to be authenticated... others could perhaps modify accordingly to allow for routes 
-that do not require the request to have been authenticated previous.  This modification is left to the imagination of the reader.
+that do not require the request to have been authenticated previously.  This modification is left to the imagination of the reader.
 
 ```dockerfile
 version: "3.9"
