@@ -10,12 +10,15 @@ app->secrets([$config->{secret}]);
 
 # sqlite3 db connection
 helper sqlite => sub {
+
+	# config var 'test' will be defined if we're running unit tests
 	if ( !defined( $config->{test} ) ) {
 		state $path   = app->home->child('data.db');
 		state $sqlite = Mojo::SQLite->new( 'sqlite:' . $path );
 		return $sqlite;
 	}
 	else {
+		# for tests and future tests...
 		state $sqlite = Mojo::SQLite->new(':temp:');
 		return $sqlite;
 	}

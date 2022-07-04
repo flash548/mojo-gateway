@@ -1,6 +1,6 @@
 ## Mojo Gateway
 
-Mojolicious framework based (Perl) reverse-proxy for securing microservices with JWT.  Intended to be used in cloud environments,
+[Mojolicious::Lite](https://metacpan.org/pod/Mojolicious::Lite) framework based (Perl) reverse-proxy for securing microservices with JWT.  Intended to be used in cloud environments,
 this service can sit on the edge of your network and authenticate requests based on users registered with the service. If
 the request's cookie reveals they have/are authenticated, then the request is then routed (along with a JWT) to the path determined
 in the service's router.
