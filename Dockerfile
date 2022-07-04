@@ -7,4 +7,4 @@ RUN cpanm install Yancy
 RUN cpanm install Mojo::JWT
 RUN cpanm IO::Socket::SSL
 EXPOSE 3000
-CMD perl gateway.pl daemon -m production -l http://*:3000
+CMD perl gateway.pl prefork -w 10 -m production -l http://*:3000
