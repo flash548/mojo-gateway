@@ -37,24 +37,15 @@ $t->get_ok('/')
     ->status_is(200)
     ->content_like(qr/login/i, 'Test Login screen landing');
 
-$t->get_ok('/puckboard-api')
+$t->get_ok('/api')
     ->status_is(200)
     ->content_like(qr/login/i, 'Test Login screen landing');
 
 # test we get the login page
-$t->get_ok('/puckboard-api')
+$t->get_ok('/api')
     ->status_is(200)
     ->content_like(qr/login/i, 'Test Login screen landing')
     ->element_exists('[name=username]')
     ->element_exists('[name=password]');
-
-# $t->post_ok($t->tx->res->dom->at('form ')->attr('action') => form => {
-#         username  => 'admin@test.com',
-#         password  => 'testpass',
-#         return_to => '/puckboard-api',
-#     })
-#     ->tap(sub ($c) { say $c->tx->res->body })
-#     ->status_is(200)
-#     ->header_exists('Authorization');
 
 done_testing();

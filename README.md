@@ -52,6 +52,13 @@ services:
             - FRONTEND_URI=http://ui:8080
             - BACKEND_URI=http://backend:8080
 
+            # override the default config with whatever here
+            - MOJO_CONFIG=private.json
+
+            # or could be 'pg' in which case you'd need to provide 'DB_URI', 'DB_USER', 'DB_PASSWORD'
+            - DB_TYPE=sqlite
+
+
     # web app UI
     ui:
         image: some-docker-image:latest
