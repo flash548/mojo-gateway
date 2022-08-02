@@ -18,8 +18,17 @@ $ua->server->app->routes->any('*' => sub($c) {
 my $t = Test::Mojo->new(Mojo::File->new('./gateway.pl'), { test => 1,
     admin_user => 'admin@test.com',
     admin_pass => 'testpass',
-    frontend_uri => '/',
-    backend_uri => '/'
+    secret => 'secret',
+    routes => {
+      '/' => {
+        uri => 'http://localhost:8080',
+        enable_jwt => 0
+      },
+      '/api' => {
+        uri => 'http://localhost:8080',
+        enable_jwt => 0
+      }
+    }
 });
 $t->ua->max_redirects(3);
 

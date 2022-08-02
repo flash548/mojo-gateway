@@ -4,6 +4,10 @@
 docker-compose.yml
 *.sh
 .idea/
+.vscode/
 .docker/
 *.crt
 *.key
+Yancy/
+Yancy.pm
+private.json

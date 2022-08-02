@@ -1,0 +1,15 @@
+<html>
+<head>
+    <link rel="stylesheet" href="/css/fonts.css"/>
+    <link rel="stylesheet" href="/css/puckboard.css"/>
+    <link rel="stylesheet" href="/css/tachyons.min.css"/>
+</head>
+
+<body data-theme="dark" class="bg-primary-background">
+
+<div class="flex items-center justify-center mb4">
+  <p class="page-heading primary-brand">Whoa!! Unable to fetch that page!</p>
+</div>
+
+</body>
+</html>
