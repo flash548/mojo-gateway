@@ -8,6 +8,4 @@ docker-compose.yml
 .docker/
 *.crt
 *.key
-Yancy/
-Yancy.pm
 private.json
