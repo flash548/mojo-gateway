@@ -4,8 +4,6 @@
   "admin_pass": "<%= $ENV{ADMIN_PASS} // 'password' %>",
   "db_type": "<%= $ENV{DB_TYPE} // 'sqlite' %>",
   "db_uri": "<%= $ENV{DB_URI} // 'postgresql:///localhost:5432/postgres' %>",
-  "db_user": "<%= $ENV{DB_USER} // 'user' %>",
-  "db_password": "<%= $ENV{DB_PASSWORD} // 'password' %>",
   "jwt_secret": "<%= $ENV{SECRET} // 'change_this' %>",
   "routes": {
     "/": {
@@ -35,6 +33,13 @@
     }
   },
   "password_valid_days": 60,
+  "password_complexity": {
+    "min_length": 8,
+    "alphas": 1,
+    "numbers": 1,
+    "specials": 1,
+    "spaces": false
+  },
   "default_route": {
     "uri": "<%= $ENV{FRONTEND_URI} // 'http://localhost:8080/' %>",
     "enable_jwt": true,

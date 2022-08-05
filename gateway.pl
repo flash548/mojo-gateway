@@ -7,6 +7,9 @@ use Mojo::JWT;
 use Time::Piece;
 use Date::Parse;
 
+use lib '.';
+use Password::Complexity;
+
 my $config = plugin 'JSONConfig';
 my $ua     = Mojo::UserAgent->new;
 app->secrets( [ $config->{secret} ] );
@@ -164,6 +167,7 @@ sub do_password_change($c) {
     my $existing_password = $c->req->param('current-password');
     my $new_password = $c->req->param('new-password');
     my $retyped_password = $c->req->param('retyped-new-password');
+    my $checker = Password::Complexity->new;
 
     my ($obj) = app->yancy->auth->plugins;
     if (!$existing_password || !$obj->_check_pass( $c, $c->yancy->auth->current_user->{email}, $existing_password )) {
@@ -175,7 +179,7 @@ sub do_password_change($c) {
     } elsif ($new_password ne $retyped_password) {
         $c->flash({ return_to => $c->flash('return_to'), error_msg => 'New Password does not equal Retyped New Password' });
         $c->redirect_to('/yancy/auth/password/change',  );
-    } elsif (length($new_password) < 8 || $new_password !~ m/[[:punct:]]/ || $new_password !~ m/[[:alpha:]]/ || $new_password !~ m/[[:digit:]]/ || $new_password =~ m/\s/) {
+    } elsif (!$checker->check_complexity(new_password => $new_password, $config->{password_complexity} )) {
         $c->flash({ return_to => $c->flash('return_to'), error_msg => 'New Password does not meet complexity requirements... No whitespace, at least 8 characters, combination of letters/digits and special characters.' });
         $c->redirect_to('/yancy/auth/password/change', );
     } else {
