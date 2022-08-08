@@ -98,6 +98,8 @@ sub proxy ( $c, $name, $uri ) {
     }
 }
 
+# compares the database-stored hash to the hashed version of $password
+# returns 1 if they match (aka user gave the correct password)
 sub check_pass($db_password, $password) {
     return bcrypt_check($password, $db_password);
 }
@@ -117,6 +119,9 @@ sub do_login($c) {
             delete $record->{password};
         }
             
+        # update person's last login time, set the session to the user's record
+        # and return them to where they were trying to go to (or default to /)
+        app->db_conn->db->update("users", { last_login => get_gmstamp() }, { email => $username });
         $c->session->{user} = $record;
         $c->redirect_to($c->flash('return_to') // '/');
     } else {
@@ -141,20 +146,28 @@ sub do_password_change($c) {
     my $retyped_password = $c->req->param('retyped-new-password');
     my $checker = Password::Complexity->new;
 
+    # see if the existing password was correct
     if (!$existing_password || !check_pass( get_user($c->session->{user}->{email})->{password}, $existing_password )) {
         $c->flash({ return_to => $c->flash('return_to'), error_msg => 'Existing Password Incorrect'});
         $c->redirect_to('/auth/password/change',  );
-    } elsif ($new_password eq $existing_password) {
+    } 
+    # see if the new password doesn't equal the existing password
+    elsif ($new_password eq $existing_password) {
         $c->flash({ return_to => $c->flash('return_to'), error_msg => 'New Password cannot equal the existing password' });
         $c->redirect_to('/auth/password/change',  );
-    } elsif ($new_password ne $retyped_password) {
+    } 
+    # make sure the retyped password equals the new password
+    elsif ($new_password ne $retyped_password) {
         $c->flash({ return_to => $c->flash('return_to'), error_msg => 'New Password does not equal Retyped New Password' });
         $c->redirect_to('/auth/password/change',  );
-    } elsif (!$checker->check_complexity($new_password, $config->{password_complexity} )) {
+    } 
+    # make sure we pass the complexity checks
+    elsif (!$checker->check_complexity($new_password, $config->{password_complexity} )) {
         $c->flash({ return_to => $c->flash('return_to'), error_msg => 'New Password does not meet complexity requirements... No whitespace, at least 8 characters, combination of letters/digits and special characters.' });
         $c->redirect_to('/auth/password/change', );
-    } else {
-        # guess we're good
+    } 
+    # if we make it here, then change the password in the database
+    else {
         app->db_conn->db->update("users", { "password" => encode_password($new_password), reset_password => 0, last_reset => get_gmstamp() }, { email => $c->session->{user}->{email} } );
         $c->redirect_to($c->flash('return_to') // '/');
     }
@@ -168,6 +181,10 @@ sub get_gmstamp() {
 # returns time since given date stamp (in ISO 8601 format) in days
 sub get_days_since_gmstamp($time) {
     return (gmtime() - Time::Piece->strptime($time, "%Y-%m-%dT%H:%M:%S"))->days;
+}
+
+sub check_user_admin($c) {
+    return $c->session->{user}->{is_admin};
 }
 
 ############################
@@ -245,12 +262,14 @@ under '/' => sub ($c) {
 };
 
 get '/admin' => sub ($c) {
-    if (!$c->session->{user}->{is_admin}) {
-        $c->render('no_response');
-        return;
-    }
-    
-    $c->render('admin', users => app->db_conn->db->select('users')->hashes);
+    $c->render('no_response') if !check_user_admin($c);
+    $c->render('admin');
+};
+
+get '/users' => sub ($c) {
+    $c->render('no_response') if !check_user_admin($c);
+    my $users = app->db_conn->db->select('users', [ 'email', 'reset_password', 'last_reset', 'last_login', 'is_admin' ])->hashes;
+    $c->render(json => $users);
 };
 
 # show the password change form
@@ -304,3 +323,5 @@ CREATE TABLE users (
 ALTER TABLE users ADD COLUMN reset_password BOOLEAN DEFAULT FALSE;
 -- 3 up
 ALTER TABLE users ADD COLUMN last_reset TIMESTAMP
+-- 4 up
+ALTER TABLE users ADD COLUMN last_login TIMESTAMP

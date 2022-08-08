@@ -1,6 +1,6 @@
 <html>
     <head>
-        <link rel="stylesheet" href="/css/astro.core.css" />
+        <link rel="stylesheet" href="/css/astro.css" />
         <link rel="stylesheet" href="/css/tachyons.min.css" />
     </head>
     <body class="dark-theme">
@@ -9,7 +9,43 @@
                 <button type="button" class="rux-button  ma2">Add User</button>
             </div>
             <div>
-                <table class="rux-table">
+                
+                <div class="rux-progress overflow-hidden">
+                  <progress />
+                </div>
+            </div>
+        </div>
+        <script type="module">
+          import { h, Component, render } from 'https://unpkg.com/preact?module';
+          import htm from 'https://unpkg.com/htm?module';
+        
+          // Initialize htm with Preact
+          const html = htm.bind(h);
+        
+          function App (props) {
+            return html`<${UserTable}/>`;
+          }
+
+          class UserTable extends Component {
+            constructor(props) {
+              super(props);
+              this.state = {
+                users: [],
+              }
+            }
+
+            componentDidMount() {
+              fetch('/users', {
+                method: 'GET'
+              })
+              .then((result) => result.json())
+              .then((users) => this.setState({ users }))
+              .catch((err) => {});
+            }
+
+            render() {
+              return html`
+              <table class="rux-table">
                     <tr>
                         <th>Email</th>
                         <th>Admin?</th>
@@ -17,17 +53,20 @@
                         <th>Last Reset</th>
                         <th>Last Login</th>
                     </tr>
-                    <% for my $row (@{stash 'users'}) { %>
-                    <tr>
-                        <td><%= $row->{email} %></td>
-                        <td><%= $row->{is_admin} %></td>
-                        <td><%= $row->{reset_password} %></td>
-                        <td><%= $row->{last_reset} %></td>
-                        <td></td>
-                    </tr>
-                    <% } %>
-                </table>
-            </div>
-        </div>
+                    ${this.state.users.map(user => html`
+                      <tr>
+                          <td>${user.email}</td>
+                          <td>${user.is_admin}</td>
+                          <td>${user.reset_password}</td>
+                          <td>${user.last_reset}</td>
+                          <td>${user.last_login}</td>
+                      </tr>
+                    `)}
+                </table>`;
+            }
+          }
+        
+          render(html`<${App} name="World" />`, document.body);
+        </script>
     </body>
 </html>
