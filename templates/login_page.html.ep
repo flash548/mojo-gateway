@@ -37,19 +37,19 @@ if (my $flash = flash 'info') {
                 <%= $flash_info %>
             </div>
 %}
-            <form action="<%= url_for 'yancy.auth.password.login' %>" method="POST">
+            <form action="/auth/login" method="POST">
                 <input type="hidden" name="return_to" value="<%= stash 'return_to' %>"/>
                 <div class="ma2">
-                    <label class="input-default primary-neutral mb1" for="yancy-username"><%= l 'Email' %></label>
-                    <input class="input-emphasized bg-primary-background b--secondary-background primary-neutral ds-dChild ba pl2 pb2 fw4 w-100 f6 outline-0 bg-textfield mt1" id="yancy-username" name="username"
+                    <label class="input-default primary-neutral mb1" for="email-username">Email</label>
+                    <input class="input-emphasized bg-primary-background b--secondary-background primary-neutral ds-dChild ba pl2 pb2 fw4 w-100 f6 outline-0 bg-textfield mt1" id="username" name="username"
                            style="padding: 12px 16px;"
                            type="text"
                            placeholder="username" value="<%= stash 'user' %>"
                     >
                 </div>
                 <div class="ma2">
-                    <label class="input-default primary-neutral mb1" for="yancy-password"><%= l 'Password' %></label>
-                    <input type="password" class="input-emphasized bg-primary-background b--secondary-background primary-neutral ds-dChild  outline-0 ba pl2 pb2 fw4 w-100 f6 bg-textfield mt1" id="yancy-password"
+                    <label class="input-default primary-neutral mb1" for="password">Password</label>
+                    <input type="password" class="input-emphasized bg-primary-background b--secondary-background primary-neutral ds-dChild  outline-0 ba pl2 pb2 fw4 w-100 f6 bg-textfield mt1" id="password"
                            name="password"
                            style="padding: 12px 16px;"
                            placeholder="password">
@@ -58,7 +58,7 @@ if (my $flash = flash 'info') {
                 <button
                     class=" ma2 pa3 button-emphasized br3 ba bg-primary-brand bg-secondary-brand-hover b--secondary-brand-hover b--primary-brand primary-background pointer pv2"
                     type="submit" >
-                    <div id="new-event"><%= l 'Login' %></div>
+                    <div id="new-event">Login</div>
                     <span class="dn"></span></button>
                 </div>
          </form>
