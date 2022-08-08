@@ -1,0 +1,68 @@
+<%
+my %info = (
+    logout       => 'You have been logged out',
+    user_created => 'User created. Please log in',
+);
+my $flash_info;
+if (my $flash = flash 'info') {
+    $flash_info = $info{ $flash };
+    if (!$flash_info) {
+        app->log->error('Unknown login message: ' . $flash);
+    }
+}
+%>
+<html>
+<head>
+    <link rel="stylesheet" href="/css/fonts.css"/>
+    <link rel="stylesheet" href="/css/puckboard.css"/>
+    <link rel="stylesheet" href="/css/tachyons.min.css"/>
+</head>
+
+<body data-theme="dark" class="bg-primary-background">
+    <div class="vh-100 w-100 flex flex-column justify-center items-center">
+        <div>
+            <img width="96" class="mb2" src="/icons/FullColor-NoBg.png" alt="puckboard-logo"/>&nbsp;
+        </div>
+        <div class="mb4">
+            <span class="page-heading primary-neutral">Puckboard Demo Site</span>
+        </div>
+        <div>
+% if (stash 'login_failed') {
+            <div class="error-status body-default">
+                Login failed: User or password incorrect!
+            </div>
+%}
+% if ($flash_info) {
+            <div class="error-status body-default">
+                <%= $flash_info %>
+            </div>
+%}
+            <form action="/auth/login" method="POST">
+                <input type="hidden" name="return_to" value="<%= stash 'return_to' %>"/>
+                <div class="ma2">
+                    <label class="input-default primary-neutral mb1" for="email-username">Email</label>
+                    <input class="input-emphasized bg-primary-background b--secondary-background primary-neutral ds-dChild ba pl2 pb2 fw4 w-100 f6 outline-0 bg-textfield mt1" id="username" name="username"
+                           style="padding: 12px 16px;"
+                           type="text"
+                           placeholder="username" value="<%= stash 'user' %>"
+                    >
+                </div>
+                <div class="ma2">
+                    <label class="input-default primary-neutral mb1" for="password">Password</label>
+                    <input type="password" class="input-emphasized bg-primary-background b--secondary-background primary-neutral ds-dChild  outline-0 ba pl2 pb2 fw4 w-100 f6 bg-textfield mt1" id="password"
+                           name="password"
+                           style="padding: 12px 16px;"
+                           placeholder="password">
+                </div>
+                <div class="flex w-100 justify-end">
+                <button
+                    class=" ma2 pa3 button-emphasized br3 ba bg-primary-brand bg-secondary-brand-hover b--secondary-brand-hover b--primary-brand primary-background pointer pv2"
+                    type="submit" >
+                    <div id="new-event">Login</div>
+                    <span class="dn"></span></button>
+                </div>
+         </form>
+        </div>
+    </div>
+</body>
+</html>
