@@ -1,0 +1,33 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="/css/astro.core.css" />
+        <link rel="stylesheet" href="/css/tachyons.min.css" />
+    </head>
+    <body class="dark-theme">
+        <div class="w-100 flex justify-center flex-column">
+            <div class="w-100 flex justify-end">
+                <button type="button" class="rux-button  ma2">Add User</button>
+            </div>
+            <div>
+                <table class="rux-table">
+                    <tr>
+                        <th>Email</th>
+                        <th>Admin?</th>
+                        <th>Password Reset?</th>
+                        <th>Last Reset</th>
+                        <th>Last Login</th>
+                    </tr>
+                    <% for my $row (@{stash 'users'}) { %>
+                    <tr>
+                        <td><%= $row->{email} %></td>
+                        <td><%= $row->{is_admin} %></td>
+                        <td><%= $row->{reset_password} %></td>
+                        <td><%= $row->{last_reset} %></td>
+                        <td></td>
+                    </tr>
+                    <% } %>
+                </table>
+            </div>
+        </div>
+    </body>
+</html>

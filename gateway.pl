@@ -35,7 +35,7 @@ helper db_conn => sub {
 
 # do migrations (see bottom of file __DATA__ section)
 app->db_conn->auto_migrate(1)->migrations->from_data;
-say $config->{admin_user};
+
 # create the admin user if it doesn't exist
 app->db_conn->db->insert(
     users => {
@@ -150,13 +150,13 @@ sub do_password_change($c) {
     } elsif ($new_password ne $retyped_password) {
         $c->flash({ return_to => $c->flash('return_to'), error_msg => 'New Password does not equal Retyped New Password' });
         $c->redirect_to('/auth/password/change',  );
-    } elsif (!$checker->check_complexity(new_password => $new_password, $config->{password_complexity} )) {
+    } elsif (!$checker->check_complexity($new_password, $config->{password_complexity} )) {
         $c->flash({ return_to => $c->flash('return_to'), error_msg => 'New Password does not meet complexity requirements... No whitespace, at least 8 characters, combination of letters/digits and special characters.' });
         $c->redirect_to('/auth/password/change', );
     } else {
         # guess we're good
-        app->db_conn->db->update("users", { "password" => encode_password($new_password), reset_password => 0, last_reset => get_gmstamp() }, $c->session->{user}->{email} );
-        $c->redirect_to($c->flash('return_to'));
+        app->db_conn->db->update("users", { "password" => encode_password($new_password), reset_password => 0, last_reset => get_gmstamp() }, { email => $c->session->{user}->{email} } );
+        $c->redirect_to($c->flash('return_to') // '/');
     }
 }
 
@@ -207,7 +207,7 @@ under '/' => sub ($c) {
 
     # if user record shows we need to reset-password, and we're not already at the password path,
     #  then re-direct to that page
-    if ( $c->session->{user}->{reset_password} && $c->req->url !~ /\/auth\/password\/change/ ) {
+    if ( $c->session->{user}->{reset_password} && $c->req->url !~ /auth\/password\/change/ ) {
         $c->flash( { return_to => $c->req->url } );
         $c->redirect_to('/auth/password/change');
         return undef;
@@ -215,23 +215,25 @@ under '/' => sub ($c) {
 
     # user authenticated OK or already-authenticated, check password expiry if we've defined
     #  that setting and its more than 0 days
-    if ($c->session->{reset_password} || ($config->{password_valid_days} && $config->{password_valid_days} > 0)
-        && $c->req->url !~ /\/auth\/password\/change/) {
-
+    if (($c->session->{user}->{reset_password} || (defined($config->{password_valid_days}) && $config->{password_valid_days} > 0))
+        && $c->req->url !~ /auth\/password\/change/) {
         # because we said so
         if ($c->session->{user}->{reset_password}) {
             $c->flash( { return_to => $c->req->url, expired => 0, mandated => 1 });
             $c->redirect_to('/auth/password/change');
+            return undef;
         }
 
+        # ok didnt blatantly say we need to change the password, so
         # if last_reset is undef, then set it to now, not sure how'd that be though, should default to current date time
-        if ($c->session->{user}->{last_reset} == undef) {
+        # otherwise check the age of the password
+        if (!defined($c->session->{user}->{last_reset})) {
             app->db_conn->db->update("users", { last_reset => get_gmstamp() }, { email => $c->session->{user}->{email}} );
         } else {
             # check days delta between NOW and last_reset
             my $last_reset = $c->session->{user}->{last_reset};
             if (get_days_since_gmstamp($last_reset) >= $config->{password_valid_days}) {
-                $c->flash( { return_to => $c->req->url, expired => 1, mandated => 0 });
+                $c->flash( { return_to => $c->req->url, expired => 1, mandated => 0 } );
                 $c->redirect_to('/auth/password/change');
                 return undef;
             }
@@ -240,6 +242,15 @@ under '/' => sub ($c) {
 
     # continue on to the routes below
     return 1;
+};
+
+get '/admin' => sub ($c) {
+    if (!$c->session->{user}->{is_admin}) {
+        $c->render('no_response');
+        return;
+    }
+    
+    $c->render('admin', users => app->db_conn->db->select('users')->hashes);
 };
 
 # show the password change form
