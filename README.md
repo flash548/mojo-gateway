@@ -10,10 +10,6 @@ passwords 8 chars or greater containing at least 1 alpha, 1 number, 1 special, a
 
 ![Example usage](./example.png)
 
-In its current state, the service is very featureless and does not support user registration yet (on purpose).  The user login
-is handled by the [Yancy](https://metacpan.org/pod/Yancy) Mojolicious CMS library which has a ton of customizable options.  But in 
-this service we just use the [Yancy::Plugin::Auth](https://metacpan.org/pod/Yancy::Plugin::Auth) to save not having to implement 
-my own user authentication.  
 
 The service also uses [Mojo::JWT](https://metacpan.org/pod/Mojo::JWT) to create and inject a Json Web Token (JWT) into authenticated 
 requests before they are proxied to their intended micro-service.  Services can use the JWT to identify the request and perform their 
@@ -39,22 +35,22 @@ The routes are configured in JSON within the `gateway.json` or whatever file you
       "uri": "http://frontend:8080/",
       "enable_jwt": true,
       "jwt_claims": {
-        "email": "$c->yancy->auth->current_user->{email}"  // evaluated string - would be the user's email/username after resolution
+        "email": "$c->session->{email}"  // evaluated string - would be the user's email/username after resolution
       }
     },
     "/api/**" : {
       "uri": "http://backend:8080/",
       "enable_jwt": true,
       "jwt_claims": {
-        "email": "$c->yancy->auth->current_user->{email}"
+        "email": "$c->session->{email}"
       }
     },
     "/some-other-api" : {
       "uri" : "http://api:8080/",
       "enable_jwt": true,
       "jwt_claims": {
-        "email": "$c->yancy->auth->current_user->{email}",
-        "usercertificate": "\"Developer.\" . $c->yancy->auth->current_user->{employee_id}"  // some other custom header to be eval'd
+        "email": "$c->session->{email}",
+        "usercertificate": "\"Developer.\" . $c->sesion->{employee_id}"  // some other custom header to be eval'd
       },
       "other_headers": { 
         "x-forwarded-client-cert": "some other header data"  // other headers to be added to requests going to `/some-other-api`  (there are NOT eval'd)
@@ -120,7 +116,3 @@ volumes:
 
 ```
 
-### Login Page
-
-You can customize the login page as described in the `Yancy` docs or modify the example one that I made in `/templates/yancy/auth/password/login_page.html.ep`.  Or
-if you wish to use the default Yancy one, just delete the entire `./templates` directory.
