@@ -198,6 +198,7 @@ get '/logout' => sub ($c) {
 };
 
 get '/login' => sub ($c) {
+    $c->flash( { return_to => $c->flash('return_to') // '/' });
     $c->render('login_page');
 };
 

@@ -3345,8 +3345,8 @@ input[type='range']::-moz-focus-outer {
 .rux-tabs .rux-tab {
   border-bottom: 5px solid var(--tabBorderColor); }
 
-.rux-tabs .rux-tab {
-  border-bottom: 5px solid var(--tabBorderColor); }
+.rux-tab--selected {
+  border-bottom: 5px solid var(--tabSelectedBorderColor); }
 
 /*
 **

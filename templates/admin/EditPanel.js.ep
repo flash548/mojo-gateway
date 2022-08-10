@@ -1,0 +1,23 @@
+export class EditPanel extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {};
+  }
+
+  render(props) {
+    return html`
+      <div
+        onClick=${() => props.backgroundClicked && props.backgroundClicked()}
+        class="z-1000 absolute left-0 top-0 w-100 vh-100 bg-black-50"
+      >
+        <div
+          class="flex flex-column absolute z-2000 right-0 top-0 w-30 vh-100"
+          style="background-color: var(--surfaceElements);"
+        >
+          <h2>${props.title}</h2>
+          
+        </div>
+      </div>
+    `;
+  }
+}

@@ -1,0 +1,58 @@
+export class UserTable extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      users: [],
+    };
+  }
+
+  componentDidMount() {
+    fetch("/users", {
+      method: "GET",
+    })
+      .then((result) => result.json())
+      .then((users) => this.setState({ users }))
+      .catch((err) => {});
+  }
+
+  render() {
+    return html` <table class="rux-table">
+      <tr>
+        <th>Email</th>
+        <th class="tc">Admin?</th>
+        <th class="tc">Password Reset?</th>
+        <th>Last Reset</th>
+        <th>Last Login</th>
+      </tr>
+      ${this.state.users.map(
+        (user) => html`
+          <tr>
+            <td>${user.email}</td>
+            <td>
+              <span class="rux-checkbox flex w-100 justify-center">
+                <input
+                  type="checkbox"
+                  onClick=${(e) => e.preventDefault()}
+                  checked=${user.is_admin ? "true" : "false"}
+                />
+                <label/>
+              </span>
+            </td>
+            <td>
+              <span class="rux-checkbox flex w-100 justify-center">
+                <input
+                  type="checkbox"
+                  onClick=${(e) => e.preventDefault()}
+                  checked=${user.reset_password  ? "true" : "false"}
+                />
+                <label/>
+              </span>
+            </td>
+            <td>${user.last_reset}</td>
+            <td>${user.last_login}</td>
+          </tr>
+        `
+      )}
+    </table>`;
+  }
+}
