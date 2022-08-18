@@ -1,6 +1,7 @@
 <html>
     <head>
         <link rel="stylesheet" href="/css/astro.css" />
+        <link rel="stylesheet" href="/css/astro-icons.css" />
         <link rel="stylesheet" href="/css/tachyons.min.css" />
     </head>
     <body class="dark-theme">
@@ -42,7 +43,8 @@
                   ${ this.state.show && 
                     html`<${EditPanel} 
                       title=${this.state.action}
-                      backgroundClicked=${() => this.setState({ show: false })} />` }
+                      backgroundClicked=${() => this.setState({ show: false })}
+                      closeClicked=${() => this.setState({ show: false })} />` }
                   <${UserTable}/>
                 </div>
             `;
@@ -52,6 +54,8 @@
         %= include 'admin/UserTable', format => 'js'
         %= include 'admin/TabPanel', format => 'js'
         %= include 'admin/EditPanel', format => 'js'
+        %= include 'admin/Icon', format => 'js'
+        %= include 'admin/Status', format => 'js'
       
         render(html`<${App} />`, document.body);
         </script>

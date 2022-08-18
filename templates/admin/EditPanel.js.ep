@@ -11,11 +11,15 @@ export class EditPanel extends Component {
         class="z-1000 absolute left-0 top-0 w-100 vh-100 bg-black-50"
       >
         <div
-          class="flex flex-column absolute z-2000 right-0 top-0 w-30 vh-100"
+          class="pa3 flex flex-column absolute z-2000 right-0 top-0 w-20 vh-100"
           style="background-color: var(--surfaceElements);"
+          onClick=${(e) => { e.stopPropagation(); }}
         >
-          <h2>${props.title}</h2>
-          
+          <div class="flex flex-row w-100 justify-between">
+            <h2>${props.title}</h2>
+            <${Icon} icon="close" onClick=${() => props.closeClicked && props.closeClicked()}/>
+          </div>
+          <${Status} status="normal"/>
         </div>
       </div>
     `;

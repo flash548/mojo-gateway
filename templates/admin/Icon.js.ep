@@ -1,0 +1,23 @@
+export class Icon extends Component {
+  constructor(props) {
+    super(props);
+  }
+
+  render(props) {
+    return html`
+      <span onClick=${() => props.onClick && props.onClick()}>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          preserveAspectRatio="xMidYMid meet"
+          focusable="false"
+          width="2rem"
+          height="2rem"
+          class=${props.onClick ? 'pointer' : ''}
+          style="fill: var(--primary);"
+      >
+          <use href="/icons/astro.svg#${props.icon}"></use>
+      </svg>
+  </span>
+    `
+  }
+}

@@ -10,7 +10,7 @@ export class TabPanel extends Component {
 
   render() {
     return html`
-      <div class="flex w-100 justify-start items-center">
+      <div class="flex w-100 justify-start items-start flex-column">
         <h1>${this.state.title}</h1>
         <div
           class="ml4 flex w-100 justify-start rux-tabs"

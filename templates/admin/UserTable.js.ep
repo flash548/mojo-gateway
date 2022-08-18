@@ -33,7 +33,7 @@ export class UserTable extends Component {
                 <input
                   type="checkbox"
                   onClick=${(e) => e.preventDefault()}
-                  checked=${user.is_admin ? "true" : "false"}
+                  checked=${user.is_admin ? true : false}
                 />
                 <label/>
               </span>
@@ -43,7 +43,7 @@ export class UserTable extends Component {
                 <input
                   type="checkbox"
                   onClick=${(e) => e.preventDefault()}
-                  checked=${user.reset_password  ? "true" : "false"}
+                  checked=${user.reset_password  ? true : false}
                 />
                 <label/>
               </span>
