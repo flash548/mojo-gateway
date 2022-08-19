@@ -1,0 +1,19 @@
+export class Checkbox extends Component {
+
+  constructor(props) { 
+    super(props); 
+  }
+
+  render(props) {
+    return html`
+      <span class="rux-checkbox flex w-100 justify-start" onClick=${(e) => { props.onClick && props.onClick(!props.checked); }}>
+        <input
+          id=${props.id || 'checkbox'}
+          type="checkbox"          
+          checked=${props.checked}
+        />
+        <label>${props.label}</label>
+      </span>
+    `;
+  }
+}

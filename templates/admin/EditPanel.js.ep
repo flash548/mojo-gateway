@@ -1,7 +1,20 @@
 export class EditPanel extends Component {
   constructor(props) {
     super(props);
-    this.state = {};
+    this.state = {
+      email: '',
+      password: '',
+      reset_password: true,
+      is_admin: false,
+      dod_id: 0,
+    };
+  }
+
+  async postUser() {
+    await fetch('/admin/users', {
+      method: 'POST',
+      body: JSON.stringify(this.state)
+    });
   }
 
   render(props) {
@@ -19,7 +32,29 @@ export class EditPanel extends Component {
             <h2>${props.title}</h2>
             <${Icon} icon="close" onClick=${() => props.closeClicked && props.closeClicked()}/>
           </div>
-          <${Status} status="normal"/>
+          <div class="mt3 flex flex-column justify-start items-start">
+            <form onSubmit=${(e) =>{ e.preventDefault(); this.postUser();}}>
+              <div class="rux-form-field mb2">
+                <label for="user-email" class="rux-form-field__label">User Email</label>
+                <input id="user-email" type="email" onChange=${(e) => this.setState({ email: e.target.value })} />
+              </div>
+              <div class="rux-form-field mb2">
+                <label for="user-password" class="rux-form-field__label">User Password</label>
+                <input id="user-password" type="password" onChange=${(e) => this.setState({ password: e.target.value })} />
+              </div>
+              <div class="rux-form-field mb2">
+                <label for="user-dod_id" class="rux-form-field__label">User DoDID</label>
+                <input id="user-dod_id" onChange=${(e) => this.setState({ dod_id: e.target.value })} />
+              </div>
+              <div class="rux-form-field mb2">
+                <${Checkbox} id="user-reset" label="Expire Password?" checked=${this.state.reset_password} onClick=${(checked) => this.setState({ reset_password: checked })} />
+              </div>
+              <div class="rux-form-field mb2">
+                <${Checkbox} id="user-admin" label="Is Admin?" checked=${this.state.is_admin} onClick=${(checked) => this.setState({ is_admin: checked })} />
+              </div>
+              <button type="submit" class="rux-button ma2">Submit</button>
+            </form>
+          </div>
         </div>
       </div>
     `;

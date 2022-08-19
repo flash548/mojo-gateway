@@ -29,23 +29,13 @@ export class UserTable extends Component {
           <tr>
             <td>${user.email}</td>
             <td>
-              <span class="rux-checkbox flex w-100 justify-center">
-                <input
-                  type="checkbox"
-                  onClick=${(e) => e.preventDefault()}
-                  checked=${user.is_admin ? true : false}
-                />
-                <label/>
+              <span class="w-100 flex justify-center">
+                <${Status} status=${user.is_admin ? 'normal' : 'off' } />
               </span>
             </td>
             <td>
-              <span class="rux-checkbox flex w-100 justify-center">
-                <input
-                  type="checkbox"
-                  onClick=${(e) => e.preventDefault()}
-                  checked=${user.reset_password  ? true : false}
-                />
-                <label/>
+              <span class="w-100 flex justify-center">
+                <${Status} status=${user.reset_password ? 'standby' : 'off' } />
               </span>
             </td>
             <td>${user.last_reset}</td>
