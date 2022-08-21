@@ -5,8 +5,10 @@ use Mojo::SQLite;
 use Mojo::Pg;
 use Mojo::JWT;
 use Time::Piece;
+
 use Crypt::Bcrypt qw/bcrypt bcrypt_check/;
 use Data::Entropy::Algorithms qw(rand_bits);
+
 use lib qw(./lib);
 use Password::Complexity;
 
@@ -41,7 +43,7 @@ app->db_conn->auto_migrate(1)->migrations->from_data;
 # create the admin user if it doesn't exist
 app->db_conn->db->insert(
   users => {
-    email    => "$config->{admin_user}",
+    email    => lc "$config->{admin_user}",
     password => encode_password( $config->{admin_pass} ),
     dod_id   => 123456789,
     is_admin => 1
@@ -115,7 +117,7 @@ sub check_pass ( $db_password, $password ) {
 }
 
 sub do_login ($c) {
-  my $username = $c->req->param('username');
+  my $username = lc $c->req->param('username');
   my $password = $c->req->param('password');
 
   my $record = get_user($username);
@@ -213,6 +215,9 @@ sub add_user ($c) {
   if (app->db_conn->db->select('users', undef, { email => lc $c->req->json->{email}})->hashes->size > 0) {
     $c->render(status => 409, json => { message => 'User exists'});
   } else {
+    my $user = $c->req->json;
+    $user->{email} = lc $user->{email};
+
     app->db_conn->db->insert(users => $c->req->json );
     my $user = get_user($c->req->json->{email});
     delete $user->{password};

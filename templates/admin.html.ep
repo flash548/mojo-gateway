@@ -20,8 +20,6 @@
         <script type="module">
           import { h, Component, render } from '/js/preact.js';
           import htm from '/js/htm.js';
-        
-          // Initialize htm with Preact
           const html = htm.bind(h);
         
           class App extends Component {
