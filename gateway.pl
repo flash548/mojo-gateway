@@ -143,7 +143,7 @@ sub do_login ($c) {
 }
 
 sub get_user ($username) {
-  my $record = app->db_conn->db->select( "users", undef, { email => $username } )->hash;
+  my $record = app->db_conn->db->select( "users", undef, { email => lc $username } )->hash;
   return $record if defined($record);
 }
 
