@@ -1,7 +1,7 @@
 export class EditPanel extends Component {
   constructor(props) {
     super(props);
-    this.state = {
+    this.state = props.selectedUser || {
       email: '',
       password: '',
       reset_password: true,
@@ -13,7 +13,7 @@ export class EditPanel extends Component {
   async postUser() {
     await fetch('/admin/users', {
       method: 'POST',
-      body: JSON.stringify(this.state)
+      body: JSON.stringify({ ...this.state, retyped_password: this.state.password })
     });
   }
 
@@ -36,15 +36,15 @@ export class EditPanel extends Component {
             <form onSubmit=${(e) =>{ e.preventDefault(); this.postUser();}}>
               <div class="rux-form-field mb2">
                 <label for="user-email" class="rux-form-field__label">User Email</label>
-                <input id="user-email" type="email" onChange=${(e) => this.setState({ email: e.target.value })} />
+                <input id="user-email" type="email" value=${this.state.email} onChange=${(e) => this.setState({ email: e.target.value })} />
               </div>
               <div class="rux-form-field mb2">
                 <label for="user-password" class="rux-form-field__label">User Password</label>
-                <input id="user-password" type="password" onChange=${(e) => this.setState({ password: e.target.value })} />
+                <input id="user-password" type="password" value=${this.state.password} onChange=${(e) => this.setState({ password: e.target.value })} />
               </div>
               <div class="rux-form-field mb2">
                 <label for="user-dod_id" class="rux-form-field__label">User DoDID</label>
-                <input id="user-dod_id" onChange=${(e) => this.setState({ dod_id: e.target.value })} />
+                <input id="user-dod_id" value=${this.state.dod_id} onChange=${(e) => this.setState({ dod_id: e.target.value })} />
               </div>
               <div class="rux-form-field mb2">
                 <${Checkbox} id="user-reset" label="Expire Password?" checked=${this.state.reset_password} onClick=${(checked) => this.setState({ reset_password: checked })} />

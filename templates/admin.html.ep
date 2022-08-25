@@ -25,26 +25,30 @@
           class App extends Component {
             constructor(props) {
               super(props);
-              this.state = { show: false };
+              this.state = { 
+                show: false ,
+                selectedUser: {},
+              };
             }
 
             render() {
               return html`
                 <div class="relative flex flex-column w-100 pa2">
                   <${TabPanel} title="Admin" tabs=${[ 
-                    { title: "Users" },
-                    { title: "Routes"},
-                    { title: "Stats" } ]} 
+                    { title: "Users" }]} 
                   />
                   <div class="flex w-100 justify-end">
-                    <button onClick=${() => this.setState({ show: true, action: 'Add User' })} class="rux-button ma2" type="button">Add User</button>
+                    <button onClick=${() => this.setState({ show: true, action: 'Add User', selectedUser: null })} class="rux-button ma2" type="button">Add User</button>
                   </div>
                   ${ this.state.show && 
                     html`<${EditPanel} 
                       title=${this.state.action}
                       backgroundClicked=${() => this.setState({ show: false })}
+                      selectedUser=${this.state.selectedUser}
                       closeClicked=${() => this.setState({ show: false })} />` }
-                  <${UserTable}/>
+                  <${UserTable} 
+                    rowClicked=${(user) => this.setState({ action: 'Edit User', show: true, selectedUser: {...user} })} 
+                  />
                 </div>
             `;
           }

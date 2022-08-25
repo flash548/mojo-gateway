@@ -10,22 +10,22 @@
       "uri": "<%= $ENV{FRONTEND_URI} // 'http://localhost:8080/' %>",
       "enable_jwt": true,
       "jwt_claims": {
-        "email": "$c->yancy->auth->current_user->{email}"
+        "email": "$c->session->{email}"
       }
     },
     "/api/**" : {
       "uri": "<%= $ENV{BACKEND_URI} // 'http://localhost:9000/' %>",
       "enable_jwt": true,
       "jwt_claims": {
-        "email": "$c->yancy->auth->current_user->{email}"
+        "email": "$c->session->{email}"
       }
     },
     "/other-api" : {
       "uri" : "<%= $ENV{OTHER_BACKEND_URI} // 'http://localhost:8081/' %>",
       "enable_jwt": true,
       "jwt_claims": {
-        "email": "$c->yancy->auth->current_user->{email}",
-        "usercertificate": "\"Tron.Developer.\" . $c->yancy->auth->current_user->{dod_id}"
+        "email": "$c->session->{email}",
+        "usercertificate": "\"Tron.Developer.\" . $c->session->{dod_id}"
       },
       "other_headers": {
         "x-forwarded-client-cert": "some other header data"
@@ -44,7 +44,7 @@
     "uri": "<%= $ENV{FRONTEND_URI} // 'http://localhost:8080/' %>",
     "enable_jwt": true,
     "jwt_claims": {
-      "email": "$c->yancy->auth->current_user->{email}"
+      "email": "$c->session->{email}"
     }
   }
 }

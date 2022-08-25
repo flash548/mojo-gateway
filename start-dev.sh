@@ -1,0 +1,3 @@
+#! sh
+
+morbo gateway.pl

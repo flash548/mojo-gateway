@@ -15,7 +15,7 @@ export class UserTable extends Component {
       .catch((err) => {});
   }
 
-  render() {
+  render(props) {
     return html` <table class="rux-table">
       <tr>
         <th>Email</th>
@@ -26,7 +26,7 @@ export class UserTable extends Component {
       </tr>
       ${this.state.users.map(
         (user) => html`
-          <tr>
+          <tr class="pointer" onClick=${() => props.rowClicked({...user})}>
             <td>${user.email}</td>
             <td>
               <span class="w-100 flex justify-center">

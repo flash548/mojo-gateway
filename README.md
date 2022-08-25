@@ -115,4 +115,7 @@ volumes:
 
 
 ```
+NOTE:
+
+The Admin interface (WIP) is located at `/admin`
 

@@ -32,6 +32,7 @@ if (my $flash = flash 'info') {
 % if (stash 'login_failed') {
             <div class="error-status body-default">
                 Login failed: User or password incorrect!
+                Login failed: User or password incorrect!
             </div>
 %}
 % if ($flash_info) {
@@ -44,6 +45,7 @@ if (my $flash = flash 'info') {
                 <div class="ma2">
                     <label class="input-default primary-neutral mb1" for="email-username">Email</label>
                     <input class="input-emphasized bg-primary-background b--secondary-background primary-neutral ds-dChild ba pl2 pb2 fw4 w-100 f6 outline-0 bg-textfield mt1" id="username" name="username"
+                           autocapitalize="none" autocorrect="none"
                            style="padding: 12px 16px;"
                            type="text"
                            placeholder="username" value="<%= stash 'user' %>"
@@ -51,7 +53,9 @@ if (my $flash = flash 'info') {
                 </div>
                 <div class="ma2">
                     <label class="input-default primary-neutral mb1" for="password">Password</label>
-                    <input type="password" class="input-emphasized bg-primary-background b--secondary-background primary-neutral ds-dChild  outline-0 ba pl2 pb2 fw4 w-100 f6 bg-textfield mt1" id="password"
+                    <input type="password" class="input-emphasized bg-primary-background b--secondary-background primary-neutral ds-dChild  outline-0 ba pl2 pb2 fw4 w-100 f6 bg-textfield mt1" 
+                           id="password"
+                           autocapitalize="none" autocorrect="none"
                            name="password"
                            style="padding: 12px 16px;"
                            placeholder="password">
