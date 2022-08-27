@@ -2,7 +2,6 @@ use Mojolicious::Lite;
 use Test::Mojo;
 use Test::More;
 use Mojo::UserAgent -signatures;
-use Data::Dumper;
 
 #################################
 # Main Test for the Application #
@@ -11,7 +10,8 @@ use Data::Dumper;
 
 # init our application and set up our test client to be
 # like the browser (where we'll follow re-directs)
-my $t = Test::Mojo->new(Mojo::File->new('./gateway.pl'), { test => 1,
+my $t = Test::Mojo->new(Mojo::File->new('./gateway.pl'), { 
+    test => 1,
     admin_user => 'admin@test.com',
     admin_pass => 'testpass',
     secret => 'secret',
