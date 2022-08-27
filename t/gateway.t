@@ -1,7 +1,8 @@
-use Mojolicious::Lite;
+use Mojolicious;
 use Test::Mojo;
 use Test::More;
 use Mojo::UserAgent -signatures;
+use Gateway;
 
 #################################
 # Main Test for the Application #
@@ -10,7 +11,7 @@ use Mojo::UserAgent -signatures;
 
 # init our application and set up our test client to be
 # like the browser (where we'll follow re-directs)
-my $t = Test::Mojo->new(Mojo::File->new('./gateway.pl'), { 
+my $t = Test::Mojo->new('Gateway', { 
     test => 1,
     admin_user => 'admin@test.com',
     admin_pass => 'testpass',
