@@ -29,19 +29,20 @@ sub proxy ($self,  $c, $name ) {
     $request->headers->add( 'Authorization', 'Bearer ' . $jwt->encode );
   }
 
-  # add any other static-text headers
-  for my $header ( keys %{ $self->config->{routes}->{$name}->{other_headers} } ) {
+  # add any other static-text headers specified in our config json
+  for my $header ( keys %{ $self->config->{routes}->{$name}->{other_headers} // {} } ) {
     $request->headers->add( $header,
       $self->config->{routes}->{$name}->{other_headers}->{$header} );
   }
   
   my $tx = $self->ua->start( Mojo::Transaction::HTTP->new( req => $request ) );
-
   if ( defined( $tx->res->code ) ) {
     $c->res( $tx->res );
     $c->res->code( $tx->res->code );
     $c->res->headers->location( $tx->res->headers->location ) if $tx->res->code;
-    $c->res->headers( $tx->res->headers->clone );
+    for my $header ( keys %{$tx->res->headers->to_hash} ) { 
+      $c->res->headers->add($header => $tx->res->headers->to_hash->{$header});
+    }
     $c->res->headers->content_type( $tx->res->headers->content_type );
 
     my $body = $tx->res->body;
@@ -51,7 +52,6 @@ sub proxy ($self,  $c, $name ) {
     if ( $c->req->url->path =~ m/environment\.js/ ) {
       $body =~ s!http://localhost:8080/puckboard-api/v1!/puckboard-api/v1!;
     }
-
     $c->res->body($body);
     $c->rendered;
   }
