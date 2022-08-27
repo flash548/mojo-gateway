@@ -1,12 +1,9 @@
 ## Mojo::Gateway
 
-[Mojolicious::Lite](https://metacpan.org/pod/Mojolicious::Lite) framework based (Perl) reverse-proxy for securing microservices with JWT.  Intended to be used in cloud environments, where
+[Mojolicious](https://metacpan.org/pod/Mojolicious) framework based (Perl) reverse-proxy for securing microservices with JWT.  Intended to be used in cloud environments, where
 this service can sit on the edge of your network and authenticate requests based on users registered with the service. If
 the request's cookie reveals they have/are authenticated, then the request is then routed (along with a JWT) to the path determined
 in the service's routes defined in the configuration JSON file (see the `gateway.json` file above for an example).
-
-Most of the keys in the config json are used except for the password complexity configuration - that is a WIP.  Right now it enforces
-passwords 8 chars or greater containing at least 1 alpha, 1 number, 1 special, and no spaces hard-coded.
 
 ![Example usage](./example.png)
 
@@ -35,21 +32,21 @@ The routes are configured in JSON within the `gateway.json` or whatever file you
       "uri": "http://frontend:8080/",
       "enable_jwt": true,
       "jwt_claims": {
-        "email": "$c->session->{email}"  // evaluated string - would be the user's email/username after resolution
+        "email": "$c->session->{user}->{email}"  // evaluated string - would be the user's email/username after resolution
       }
     },
     "/api/**" : {
       "uri": "http://backend:8080/",
       "enable_jwt": true,
       "jwt_claims": {
-        "email": "$c->session->{email}"
+        "email": "$c->session->{user}->{email}"
       }
     },
     "/some-other-api" : {
       "uri" : "http://api:8080/",
       "enable_jwt": true,
       "jwt_claims": {
-        "email": "$c->session->{email}",
+        "email": "$c->session->{user}->{email}",
         "usercertificate": "\"Developer.\" . $c->sesion->{employee_id}"  // some other custom header to be eval'd
       },
       "other_headers": { 

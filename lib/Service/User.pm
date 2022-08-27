@@ -90,6 +90,7 @@ sub do_login ($self, $c) {
     # update person's last login time, set the session to the user's record
     # and return them to where they were trying to go to (or default to /)
     $self->db->update("users", { last_login => $self->get_gmstamp() }, { email => $username });
+    $record = $self->get_user($username);
     $c->session->{user} = $record;
     $c->redirect_to( $c->flash('return_to') // '/' );
   }
@@ -104,7 +105,7 @@ sub get_user ($self, $username) {
 }
 
 sub get_all_users($self, $c) {
-  my $users = $self->db->select( 'users',[ 'email', 'reset_password', 'dod_id', 'last_reset', 'last_login', 'is_admin' ] )->hashes;
+  my $users = $self->db->select( 'users', [ 'email', 'reset_password', 'dod_id', 'last_reset', 'last_login', 'is_admin' ] )->hashes;
   $c->render( json => $users );
 }
 
@@ -116,13 +117,10 @@ sub check_user_admin ($self, $c) {
 sub add_user ($self, $c) {
   if ($self->db->select('users', undef, { email => lc $c->req->json->{email}})->hashes->size > 0) {
     $c->render(status => 409, json => { message => 'User exists'});
-  } elsif ($c->req->{password} ne $c->req->{retyped_password}) {
-    $c->render(status => 400, json => { message => 'Password does not equal re-typed password'});
   } else {
     my $user = $c->req->json;
     $user->{email} = lc $user->{email};
     $user->{password} = $self->password_util->encode_password($user->{password});
-    delete $user->{retyped_password};
     $self->db->insert(users => $c->req->json );
     $user = $self->get_user($c->req->json->{email});
     delete $user->{password};
@@ -132,22 +130,23 @@ sub add_user ($self, $c) {
 
 # updates user
 sub update_user ($self, $c) {
-  if (!$self->db->select('users', undef, { email => lc $c->req->json->{email}})->hashes->size) {
-    my $existing_user = get_user(lc $c->req->json->{email});
+  if ($self->db->select('users', undef, { email => lc $c->req->json->{email}})->hashes->size) {
+    my $existing_user = $self->get_user(lc $c->req->json->{email});
 
     # now go through the keys of the payload and update the existing_user record 
-    # if new field wasn't undefined
+    # if new field wasn't undefined - that way we dont always have to provide password
+    # if we have to go in an manually expire someone's account
     my $user = $c->req->json;
-    for my $key (keys @{$user}) {
+    for my $key (keys %{$user}) {
       if ($user->{$key}) {
         $existing_user->{$key} = $user->{$key};
       }
     }
 
-    $self->db->update('users', $user, { email => $existing_user->{email }});
-
+    $self->db->update('users', $user, { email => $existing_user->{email}});
     my $updated_user = $self->get_user(lc $c->req->json->{email});
     delete $updated_user->{password};
+
     $c->render(status => 200, json => $updated_user);
   } else {
     $c->render(status => 404, json => { message => 'User does not exist'});
@@ -179,19 +178,25 @@ sub do_password_change($self, $c) {
 
   # make sure we pass the complexity checks
   elsif (!$self->password_util->check_complexity($new_password, $self->config->{password_complexity})) {
-    $c->flash({return_to => $c->flash('return_to'),error_msg =>'New Password does not meet complexity requirements... No whitespace, at least 8 characters, combination of letters/digits and special characters.'});
+    $c->flash({return_to => $c->flash('return_to'),error_msg =>'New Password does not meet complexity requirements'});
     $c->redirect_to( '/auth/password/change', );
   }
 
-  # if we make it here, then change the password in the database
+  # if we make it here, then change the password in the database, and update the user's session
   else {
+
     $self->db->update("users",  {
-        "password"     => encode_password($new_password),
+        password     => $self->password_util->encode_password($new_password),
         reset_password => 0,
-        last_reset     => get_gmstamp()
-      },
-      { email => $c->session->{user}->{email} }
-    );
+        last_reset     => $self->get_gmstamp()
+      }, { email => $c->session->{user}->{email} });
+
+    # now update the session cookie with updated user record, so we
+    # don't get to the change password screen again on next request
+    my $record = $self->get_user( $c->session->{user}->{email});
+    delete $record->{password};
+    $c->session->{user} = $record;
+
     $c->redirect_to( $c->flash('return_to') // '/' ); 
   }
 }
@@ -203,7 +208,7 @@ sub get_gmstamp {
 
 # returns time since given date stamp (in ISO 8601 format) in days
 sub get_days_since_gmstamp ($self, $time) {
-  return ( gmtime() - Time::Piece->strptime( $time, "%Y-%m-%dT%H:%M:%S" ) )->days;
+  return ( gmtime() - Time::Piece->strptime( $time, "%Y-%m-%dT%H:%M:%SZ" ) )->days;
 }
 
 1;

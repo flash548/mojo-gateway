@@ -60,11 +60,12 @@ under '/' => sub ($c) { $user_service->check_user_status($c) };
 
 get '/admin' => sub ($c) { $admin_controller->admin_page_get($c) };
 post '/admin/users' => sub ($c) { $admin_controller->add_user_post($c) };
+put '/admin/users' => sub ($c) { $admin_controller->update_user_put($c) };
 get '/users' => sub ($c) { $admin_controller->all_users_get($c) };
 
 # show the password change form
 get '/auth/password/change' => sub ($c) { $user_controller->password_change_form_get($c) };
-post '/auth/password/change' => sub ($c) { $user_controller->password_change_post($c, $config) };
+post '/auth/password/change' => sub ($c) { $user_controller->password_change_post($c) };
 
 # add our proxy routes requiring authentication
 for my $route_spec ( keys %{ $config->{routes} } ) {
