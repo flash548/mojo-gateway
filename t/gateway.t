@@ -27,6 +27,9 @@ my $t = Test::Mojo->new('Gateway', {
         enable_jwt => 1
       }
     },
+    default_route => {
+        uri => 'https://localhost:8080/frontend',
+    },
     password_valid_days => 60,
     password_complexity => {
       min_length => 8,

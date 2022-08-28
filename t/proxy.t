@@ -20,6 +20,8 @@ package MockAgent;
     }
     $tx->res($res);
     $tx->res->code(200);
+    $tx->res->headers->location('/frontend');
+    $tx->res->headers->content_type('application/json');
     return $tx;
   }
 
@@ -55,6 +57,8 @@ subtest 'Test JWT injected if config says to' => sub {
     }
   });
   $t->ua->max_redirects(3);
+
+  # inject our mocked UserAgent class
   $t->app->proxy_service->ua(MockAgent->new);
 
   # test we get the login page form elements
@@ -72,6 +76,8 @@ subtest 'Test JWT injected if config says to' => sub {
   $t->get_ok('/s')
     ->status_is(200)
     ->header_exists('Authorization', 'Authorization header present as expected')
+    ->header_is('Content-Type' => 'application/json')
+    ->tap(sub ($t) { is('/frontend', $t->tx->res->headers->location); })
     ->tap(sub ($t) { 
       my $jwt = Mojo::JWT->new(secret => 'secret')->decode(do { my $val = $t->tx->res->headers->authorization; $val =~ s/Bearer\s//g; $val; });
       return is('admin@test.com', $jwt->{email});

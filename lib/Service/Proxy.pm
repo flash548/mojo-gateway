@@ -8,9 +8,9 @@ has 'ua';
 # takes the request object ($c) named route from the config
 sub proxy ($self,  $c, $name ) {
   my $request = $c->req->clone;
-
+  my $uri = $self->config->{routes}->{$name}->{uri} // $self->config->{default_route}->{uri} ;
+  
   # remove the trailing slash if present
-  my $uri = $self->config->{routes}->{$name}->{uri};
   $uri =~ s!/$!!;
   $request->url( Mojo::URL->new( $uri . $c->req->url ) );
 
@@ -39,12 +39,11 @@ sub proxy ($self,  $c, $name ) {
   if ( defined( $tx->res->code ) ) {
     $c->res( $tx->res );
     $c->res->code( $tx->res->code );
-    $c->res->headers->location( $tx->res->headers->location ) if $tx->res->code;
     for my $header ( keys %{$tx->res->headers->to_hash} ) { 
-      $c->res->headers->add($header => $tx->res->headers->to_hash->{$header});
+      $c->res->headers->add($header => $tx->res->headers->to_hash->{$header}) if
+        defined $tx->res->headers->to_hash->{$header};
     }
-    $c->res->headers->content_type( $tx->res->headers->content_type );
-
+    $c->res->headers->content_type( $tx->res->headers->content_type ) if $tx->res->headers->content_type;
     my $body = $tx->res->body;
 
     # TODO make this able to be specified in the config JSON file... not here

@@ -32,7 +32,7 @@ The routes are configured in JSON within the `gateway.json` or whatever file you
       "uri": "http://frontend:8080/",
       "enable_jwt": true,
       "jwt_claims": {
-        "email": "$c->session->{user}->{email}"  // evaluated string - would be the user's email/username after resolution
+        "email": "$c->session->{user}->{email}"  
       }
     },
     "/api/**" : {
@@ -47,10 +47,10 @@ The routes are configured in JSON within the `gateway.json` or whatever file you
       "enable_jwt": true,
       "jwt_claims": {
         "email": "$c->session->{user}->{email}",
-        "usercertificate": "\"Developer.\" . $c->sesion->{employee_id}"  // some other custom header to be eval'd
+        "usercertificate": "\"Developer.\" . $c->sesion->{employee_id}"  
       },
       "other_headers": { 
-        "x-forwarded-client-cert": "some other header data"  // other headers to be added to requests going to `/some-other-api`  (there are NOT eval'd)
+        "x-forwarded-client-cert": "some other header data"  
       }
     }
   },
@@ -97,7 +97,7 @@ services:
         volumes:
             - backend-postgres:/var/lib/postgresql/data
 
-    # a postgres db for mojo::gateway if you're using Postgres/non-SQLITE
+    # a postgres db for mojo::gateway if you're using Postgres
     # db-name:
     #     image: postgres
     #     environment:
@@ -112,7 +112,36 @@ volumes:
 
 
 ```
-NOTE:
 
-The Admin interface (WIP) is located at `/admin`
+## Admin Interface
 
+The Admin interface (WIP) is located at `/admin`.  It is available only to authenticated users with the `is_admin` field set to true.  The interface is written in Preact JS and uses the browswer
+fetch API to interact with the API.  
+
+Within the admin interface you can (or eventually will be able to):
+
+- Add user accounts
+- Delete user accounts (WIP)
+- Update user accounts (change, expire passwords, change names, etc) (WIP)
+- View traffic stats (route usage, status, etc) (WIP)
+
+## Roadmap
+
+Desired features in order of most likely implementation:
+
+
+### App Features
+
+- Set optional config param for max attempts of unsuccessful login (e.g. lock account after 3 bad attempts)
+- Admin lock-out account
+- MFA option - integration with Google Authenticator
+- Audit Log - route usage stats
+- Add forgot-password feature -- vague at this point
+- Allow some type of configurable, self-registration - not sure what that looks like yet
+- Integration with AWS SES or the like - for email notifications
+
+### App Todos
+
+- Config validation on bootstrap - decide which fields are non-optional, and croak (or something) if not present or found
+- JSON validation for backend API endpoints
+- 
