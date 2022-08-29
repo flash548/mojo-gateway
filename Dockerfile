@@ -12,4 +12,7 @@ RUN cpanm install Data::Entropy::Algorithms
 EXPOSE 3000
 
 # fork 10 runners for prod - adjust as needed
-CMD perl ./script/mojo_gateway prefork -w 10 -m production -l http://*:3000
+# CMD perl ./script/mojo_gateway prefork -w 10 -m production -l http://*:3000
+
+# just demonize for now... until figure out the db issue
+CMD perl ./script/mojo_gateway daemon -m production -l http://*:3000
