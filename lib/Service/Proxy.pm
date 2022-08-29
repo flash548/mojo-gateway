@@ -34,11 +34,13 @@ sub proxy ($self, $c, $name) {
   if (defined($tx->res->code)) {
     $c->res($tx->res);
     $c->res->code($tx->res->code);
-    for my $header (keys %{$tx->res->headers->to_hash}) {
-      $c->res->headers->add($header => $tx->res->headers->to_hash->{$header})
-        if defined $tx->res->headers->to_hash->{$header};
-    }
-    $c->res->headers->content_type($tx->res->headers->content_type) if $tx->res->headers->content_type;
+    $c->res->headers($tx->res->headers->clone);
+    
+    $c->res->headers->content_type($tx->res->headers->content_type) if !defined($c->res->headers->content_type);
+    $c->res->headers->location($tx->res->headers->location) if !defined($c->res->headers->location);
+  use Data::Dumper;
+  say Dumper($c->res->headers);
+    
     my $body = $tx->res->body;
 
     # TODO make this able to be specified in the config JSON file... not here

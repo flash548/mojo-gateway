@@ -223,7 +223,7 @@ sub get_gmstamp {
 
 # returns time since given date stamp (in ISO 8601 format) in days
 sub get_days_since_gmstamp ($self, $time) {
-  if ($self->config->{db_type} eq 'pg') {
+  if (defined($self->config->{db_type}) && $self->config->{db_type} eq 'pg') {
     return (gmtime() - Time::Piece->strptime($time, "%Y-%m-%d %H:%M:%S"))->days;
   } else {
     return (gmtime() - Time::Piece->strptime($time, "%Y-%m-%dT%H:%M:%SZ"))->days;
