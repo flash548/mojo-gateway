@@ -17,32 +17,34 @@ has 'user_controller';
 # This method will run once at server start
 sub startup ($self) {
   my $config = $self->plugin('JSONConfig');
-  $self->secrets( [$config->{secret}] );
+  $self->secrets([$config->{secret}]);
 
-  $self->hook(after_dispatch => sub ($c) {
+  $self->hook(
+    after_dispatch => sub ($c) {
       $c->res->headers->remove('Server');
     }
   );
 
-  $self->helper(db_conn => sub {
+  $self->helper(
+    db_conn => sub {
 
-    # config var 'test' will be defined if we're running unit tests,
-    # otherwise see what type of DB we defined in the ENV VARs
-    if ( !$ENV{test} && defined($config->{db_type}) && $config->{db_type} eq 'sqlite' ) {
-      state $path      = $self->app->home->child('data.db');
-      state $db_handle = Mojo::SQLite->new( 'sqlite:' . $path );
-      return $db_handle;
+      # config var 'test' will be defined if we're running unit tests,
+      # otherwise see what type of DB we defined in the ENV VARs
+      if (!$ENV{test} && defined($config->{db_type}) && $config->{db_type} eq 'sqlite') {
+        state $path      = $self->app->home->child('data.db');
+        state $db_handle = Mojo::SQLite->new('sqlite:' . $path);
+        return $db_handle;
+      } elsif (!defined($config->{test}) && $config->{db_type} eq 'pg') {
+        state $db_handle = Mojo::Pg->new($config->{db_uri});
+        return $db_handle;
+      } else {
+
+        # for tests and future tests...
+        state $db_handle = Mojo::SQLite->new(':temp:');
+        return $db_handle;
+      }
     }
-    elsif ( !defined( $config->{test} ) && $config->{db_type} eq 'pg' ) {
-      state $db_handle = Mojo::Pg->new( $config->{db_uri} );
-      return $db_handle;
-    }
-    else {
-      # for tests and future tests...
-      state $db_handle = Mojo::SQLite->new(':temp:');
-      return $db_handle;
-    }
-  });
+  );
 
   $self->db_conn->auto_migrate(1)->migrations->from_file('./migrations/data.sql');
 
@@ -56,7 +58,7 @@ sub startup ($self) {
 
   # login/logout shortcut - always reachable
   $self->routes->get('/logout' => sub ($c) { $self->user_controller->logout_get($c) });
-  $self->routes->get('/login' => sub ($c) { $self->user_controller->login_page_get($c) });
+  $self->routes->get('/login'  => sub ($c) { $self->user_controller->login_page_get($c) });
   $self->routes->post('/auth/login' => sub ($c) { $self->user_controller->login_post($c) });
 
   # all routes from here-on require authentication
@@ -71,19 +73,25 @@ sub startup ($self) {
   $authorized_routes->post('/auth/password/change' => sub ($c) { $self->user_controller->password_change_post($c) });
 
   # add our proxy routes requiring authentication
-  for my $route_spec ( keys %{ $config->{routes} } ) {
-    $authorized_routes->any($route_spec => sub ($c) {
-      $self->proxy_service->proxy( $c, $route_spec );
-    });
+  for my $route_spec (keys %{$config->{routes}}) {
+    $authorized_routes->any(
+      $route_spec => sub ($c) {
+        $self->proxy_service->proxy($c, $route_spec);
+      }
+    );
   }
 
   # catch-all/default routes - routes to the default_routes specified in the config json
-  $authorized_routes->any('/**' => sub ($c) {
-    $self->proxy_service->proxy( $c, 'default_route' );
-  });
-  $authorized_routes->any('*' => sub ($c) {
-    $self->proxy_service->proxy( $c, 'default_route' );
-  });
+  $authorized_routes->any(
+    '/**' => sub ($c) {
+      $self->proxy_service->proxy($c, 'default_route');
+    }
+  );
+  $authorized_routes->any(
+    '*' => sub ($c) {
+      $self->proxy_service->proxy($c, 'default_route');
+    }
+  );
 }
 
 1;
