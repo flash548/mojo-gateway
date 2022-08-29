@@ -35,11 +35,9 @@ sub proxy ($self, $c, $name) {
     $c->res($tx->res);
     $c->res->code($tx->res->code);
     $c->res->headers($tx->res->headers->clone);
-    
+
     $c->res->headers->content_type($tx->res->headers->content_type) if !defined($c->res->headers->content_type);
     $c->res->headers->location($tx->res->headers->location) if !defined($c->res->headers->location);
-  use Data::Dumper;
-  say Dumper($c->res->headers);
     
     my $body = $tx->res->body;
 
