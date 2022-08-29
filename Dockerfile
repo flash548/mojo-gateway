@@ -4,7 +4,6 @@ COPY . .
 RUN cpanm install Mojolicious
 RUN cpanm install Mojo::SQLite
 RUN cpanm install Mojo::Pg
-RUN cpanm install Yancy
 RUN cpanm install Mojo::JWT
 RUN cpanm install Date::Parse
 RUN cpanm install Crypt::Bcrypt
