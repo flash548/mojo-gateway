@@ -11,4 +11,4 @@ RUN cpanm install Date::Parse
 EXPOSE 3000
 
 # fork 10 runners for prod - adjust as needed
-CMD perl gateway.pl prefork -w 10 -m production -l http://*:3000
+CMD perl ./script/mojo_gateway prefork -w 10 -m production -l http://*:3000
