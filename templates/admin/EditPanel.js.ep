@@ -1,6 +1,8 @@
 export class EditPanel extends Component {
   constructor(props) {
     super(props);
+    this.isEdit = props.selectedUser !== null;
+
     this.state = props.selectedUser || {
       email: '',
       password: '',
@@ -10,11 +12,16 @@ export class EditPanel extends Component {
     };
   }
 
-  async postUser() {
-    await fetch('/admin/users', {
-      method: 'POST',
-      body: JSON.stringify({ ...this.state, retyped_password: this.state.password })
+  async postUser(props) {
+    let result = await fetch('/admin/users', {
+      method: this.isEdit ? 'PUT' : 'POST',
+      body: JSON.stringify({ ...this.state })
     });
+    if (result.status === 201) {
+      let body = await result.json();
+      this.isEdit ? props.onEditUser(body) : props.onAddUser(body);
+      props.closeClicked();
+    }
   }
 
   render(props) {
@@ -33,7 +40,10 @@ export class EditPanel extends Component {
             <${Icon} icon="close" onClick=${() => props.closeClicked && props.closeClicked()}/>
           </div>
           <div class="mt3 flex flex-column justify-start items-start">
-            <form onSubmit=${(e) =>{ e.preventDefault(); this.postUser();}}>
+            <form onSubmit=${(e) => { 
+                e.preventDefault(); 
+                this.postUser(props);
+              }}>
               <div class="rux-form-field mb2">
                 <label for="user-email" class="rux-form-field__label">User Email</label>
                 <input id="user-email" type="email" value=${this.state.email} onChange=${(e) => this.setState({ email: e.target.value })} />

@@ -1,19 +1,8 @@
 export class UserTable extends Component {
   constructor(props) {
     super(props);
-    this.state = {
-      users: [],
-    };
   }
 
-  componentDidMount() {
-    fetch("/users", {
-      method: "GET",
-    })
-      .then((result) => result.json())
-      .then((users) => this.setState({ users }))
-      .catch((err) => {});
-  }
 
   render(props) {
     return html` <table class="rux-table">
@@ -24,7 +13,7 @@ export class UserTable extends Component {
         <th>Last Reset</th>
         <th>Last Login</th>
       </tr>
-      ${this.state.users.map(
+      ${props.users.map(
         (user) => html`
           <tr class="pointer" onClick=${() => props.rowClicked({...user})}>
             <td>${user.email}</td>
