@@ -27,28 +27,30 @@ sub start {
 
 package main;
 
+my $config = {
+  test       => 1,
+  admin_user => 'admin@test.com',
+  admin_pass => 'testpass',
+  secret     => 'secret',
+  jwt_secret => 'secret',
+  strip_headers_to_client => [  ],
+  routes     => {
+    '/s' => {
+      uri        => "http://localhost:3000/frontend",
+      enable_jwt => 1,
+      jwt_claims => {email => '$c->session->{user}->{email}'},
+    },
+  },
+  default_route       => {uri => "http://localhost:3000/frontend", enable_jwt => 0,},
+  password_valid_days => 60,
+  password_complexity => {min_length => 8, alphas => 1, numbers => 1, specials => 1, spaces => 0}
+};
+
 subtest 'Test JWT injected if config says to' => sub {
   my $t = Test::Mojo->new(
     'Gateway',
-    {
-      test       => 1,
-      admin_user => 'admin@test.com',
-      admin_pass => 'testpass',
-      secret     => 'secret',
-      jwt_secret => 'secret',
-      strip_headers_to_client => [  ],
-      routes     => {
-        '/s' => {
-          uri        => "http://localhost:3000/frontend",
-          enable_jwt => 1,
-          jwt_claims => {email => '$c->session->{user}->{email}'},
-        },
-      },
-      default_route       => {uri => "http://localhost:3000/frontend", enable_jwt => 0,},
-      password_valid_days => 60,
-      password_complexity => {min_length => 8, alphas => 1, numbers => 1, specials => 1, spaces => 0}
-    }
-  );
+    $config);
+
   $t->ua->max_redirects(3);
 
   # inject our mocked UserAgent class
@@ -83,6 +85,27 @@ subtest 'Test JWT injected if config says to' => sub {
     ->header_is('location' => '/frontend')
     ->header_is('content_type' => 'application/json');
 
+};
+
+subtest 'check user-agent and other client headers are preserved after proxy' => sub {
+  my $t = Test::Mojo->new(
+    'Gateway',
+    $config);
+    
+  $t->ua->max_redirects(3);
+
+  # inject our mocked UserAgent class
+  $t->app->proxy_service->ua(MockAgent->new);
+
+  # test we get the login page form elements
+  $t->get_ok('/s')->status_is(200)->content_like(qr/login/i, 'Test Login screen landing')
+    ->element_exists('[name=username]')->element_exists('[name=password]');
+
+  $t->post_ok('/auth/login', form => {username => 'admin@test.com', password => 'testpass'})->status_is(200)
+    ->content_unlike(qr/login/i, 'Login OK');
+
+  $t->ua->transactor->name("Chrome");
+  $t->get_ok('/s')->status_is(200)->header_is('User-Agent' => 'Chrome', 'Test User Agent is intact');
 };
 
 done_testing();
