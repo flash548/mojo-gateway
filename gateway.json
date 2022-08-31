@@ -4,6 +4,7 @@
   "admin_pass": "<%= $ENV{ADMIN_PASS} // 'password' %>",
   "db_type": "<%= $ENV{DB_TYPE} // 'sqlite' %>",
   "db_uri": "<%= $ENV{DB_URI} // 'postgresql://czell:password@localhost:5432/test' %>",
+  "strip_headers_to_client": [ "authorization", "server", "x-powered-by"  ],
   "jwt_secret": "<%= $ENV{SECRET} // 'change_this' %>",
   "routes": {
     "/": {

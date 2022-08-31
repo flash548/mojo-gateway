@@ -15,13 +15,13 @@ sub start {
   my ($self, $transaction) = @_;
   my $tx  = Mojo::Transaction->new;
   my $res = Mojo::Message::Response->new;
+  $res->code(200);
   for my $header (keys %{$transaction->req->headers->to_hash}) {
     $res->headers->add($header => $transaction->req->headers->to_hash->{$header});
   }
+  $res->headers->add(location => '/frontend');
+  $res->headers->add(content_type => 'application/json');
   $tx->res($res);
-  $tx->res->code(200);
-  $tx->res->headers->location('/frontend');
-  $tx->res->headers->content_type('application/json');
   return $tx;
 }
 
@@ -36,6 +36,7 @@ subtest 'Test JWT injected if config says to' => sub {
       admin_pass => 'testpass',
       secret     => 'secret',
       jwt_secret => 'secret',
+      strip_headers_to_client => [  ],
       routes     => {
         '/s' => {
           uri        => "http://localhost:3000/frontend",
@@ -43,7 +44,7 @@ subtest 'Test JWT injected if config says to' => sub {
           jwt_claims => {email => '$c->session->{user}->{email}'},
         },
       },
-      default_route       => {uri => "http://localhost:3000/exit", enable_jwt => 0,},
+      default_route       => {uri => "http://localhost:3000/frontend", enable_jwt => 0,},
       password_valid_days => 60,
       password_complexity => {min_length => 8, alphas => 1, numbers => 1, specials => 1, spaces => 0}
     }
@@ -62,18 +63,26 @@ subtest 'Test JWT injected if config says to' => sub {
 
   # test that the JWT was injected as spec'd in the config json
   $t->get_ok('/s')->status_is(200)->header_exists('Authorization', 'Authorization header present as expected')
-    ->header_is('Content-Type' => 'application/json')->tap(sub ($t) {
-    is('/frontend', $t->tx->res->headers->location);
-    })->tap(sub ($t) {
-    my $jwt = Mojo::JWT->new(secret => 'secret')->decode(
-      do { my $val = $t->tx->res->headers->authorization; $val =~ s/Bearer\s//g; $val; }
-    );
-    return is('admin@test.com', $jwt->{email});
+    ->header_is('location' => '/frontend')
+    ->header_is('content_type' => 'application/json')
+    ->tap(sub ($t) {
+      my $jwt = Mojo::JWT->new(secret => 'secret')->decode(
+        do { my $val = $t->tx->res->headers->authorization; $val =~ s/Bearer\s//g; $val; }
+      );
+      return is('admin@test.com', $jwt->{email});
     });
 
   # should be no JWT on the default route as spec'd in the config json
   $t->get_ok('/other-route')->status_is(200)
     ->header_exists_not('Authorization', 'Authorization header NOT present as expected');
+
+  # should strip authorization header from ever getting to client - if provided in config
+  $t->app->config->{strip_headers_to_client} = [ 'authorization' ];
+   # test that the JWT was injected as spec'd in the config json
+  $t->get_ok('/s')->status_is(200)->header_exists_not('Authorization', 'Authorization header NOT present as commanded')
+    ->header_is('location' => '/frontend')
+    ->header_is('content_type' => 'application/json');
+
 };
 
 done_testing();
