@@ -12,7 +12,11 @@
       "enable_jwt": true,
       "jwt_claims": {
         "email": "$c->session->{user}->{email}"
-      }
+      },
+      "transforms": [{
+        "condition": "$c->req->url->path =~ m/environment\\.js/",
+        "action": "$body =~ s!http://localhost:8080/puckboard-api/v1!/puckboard-api/v1!"
+      }]
     },
     "/api/**" : {
       "uri": "<%= $ENV{BACKEND_URI} // 'http://localhost:9000/' %>",

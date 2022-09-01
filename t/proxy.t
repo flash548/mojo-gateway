@@ -108,4 +108,30 @@ subtest 'check user-agent and other client headers are preserved after proxy' =>
   $t->get_ok('/s')->status_is(200)->header_is('User-Agent' => 'Chrome', 'Test User Agent is intact');
 };
 
+subtest 'check that we can do response body transforms' => sub {
+  my $mod_config = $config;
+  $config->{routes}->{'/s'}->{transforms} = [ { condition => '$c->req->url->path =~ m/\/s/', action => '$body = "Mojo Rocks!"' } ];
+
+  my $t = Test::Mojo->new(
+    'Gateway',
+    $mod_config);
+    
+  $t->ua->max_redirects(3);
+
+  # inject our mocked UserAgent class
+  $t->app->proxy_service->ua(MockAgent->new);
+
+  # test we get the login page form elements
+  $t->get_ok('/s')->status_is(200)->content_like(qr/login/i, 'Test Login screen landing')
+    ->element_exists('[name=username]')->element_exists('[name=password]');
+
+  $t->post_ok('/auth/login', form => {username => 'admin@test.com', password => 'testpass'})->status_is(200)
+    ->content_unlike(qr/login/i, 'Login OK');
+
+  # make sure we modified the body as specified for this route
+  $t->get_ok('/s')
+    ->status_is(200)
+    ->content_like(qr/Mojo Rocks!/);
+};
+
 done_testing();

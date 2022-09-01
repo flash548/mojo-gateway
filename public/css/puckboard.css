@@ -1,6 +1,7 @@
 /*
 * Design System light and dark palette colors
  */
+
 body,
 body[data-theme=light] {
   --primary-brand: #1655b3;
@@ -15,7 +16,6 @@ body[data-theme=light] {
   --tertiary-neutral: #8294b0;
   --error-status: #eb5757;
   --font-inter: "Inter", sans-serif;
-  /* visually "centers" because the dark edge of the shadow gives the illusion this is offset */
 }
 body ::-webkit-scrollbar,
 body[data-theme=light] ::-webkit-scrollbar {
@@ -49,35 +49,6 @@ body ::-webkit-scrollbar-corner,
 body[data-theme=light] ::-webkit-scrollbar-track,
 body[data-theme=light] ::-webkit-scrollbar-corner {
   background-color: var(--primary-background);
-}
-
-body[data-theme=legacy] {
-  /* visually "centers" because the dark edge of the shadow gives the illusion this is offset */
-}
-body[data-theme=legacy] ::-webkit-scrollbar {
-  width: 16px;
-  height: 16px;
-  background-color: transparent;
-}
-body[data-theme=legacy] ::-webkit-scrollbar-thumb {
-  background-color: lightgray;
-  border-radius: 8px;
-  border: 3px solid transparent;
-  background-clip: padding-box;
-}
-body[data-theme=legacy] ::-webkit-scrollbar-thumb:vertical {
-  border-left-width: 4px;
-}
-body[data-theme=legacy] ::-webkit-scrollbar-thumb:horizontal {
-  border-top-width: 4px;
-}
-body[data-theme=legacy] ::-webkit-scrollbar-thumb:active,
-body[data-theme=legacy] ::-webkit-scrollbar-thumb:hover {
-  background-color: lightgray;
-}
-body[data-theme=legacy] ::-webkit-scrollbar-track,
-body[data-theme=legacy] ::-webkit-scrollbar-corner {
-  background-color: transparent;
 }
 
 body[data-theme=dark] {
@@ -119,43 +90,6 @@ body[data-theme=dark] ::-webkit-scrollbar-thumb:hover {
 body[data-theme=dark] ::-webkit-scrollbar-track,
 body[data-theme=dark] ::-webkit-scrollbar-corner {
   background-color: var(--primary-background);
-}
-
-:export {
-  primaryBrand: #1655b3;
-  primaryNeutral: #051329;
-  primaryBackground: #ffffff;
-  successStatus: #429649;
-  secondaryBrand: #4586e8;
-  secondaryNeutral: #4f617d;
-  secondaryBackground: #e4ebf6;
-  warningStatus: #ebb057;
-  tertiaryBrand: #0445a7;
-  tertiaryNeutral: #8294b0;
-  errorStatus: #eb5757;
-  primaryBrandDark: #4586E8;
-  primaryNeutralDark: #DEDEDE;
-  primaryBackgroundDark: #121212;
-  successStatusDark: #59C962;
-  secondaryBrandDark: #72A4EE;
-  secondaryNeutralDark: #9F9F9F;
-  secondaryBackgroundDark: #2D2D2D;
-  warningStatusDark: #FFbF5E;
-  tertiaryBrandDark: #1E77FC;
-  tertiaryNeutralDark: #6B6B6B;
-  errorStatusDark: #FF5E5E;
-}
-
-.ds-currentTimeDot::before {
-  width: 7px;
-  height: 7px;
-  background: var(--primary-brand);
-  border-radius: 50%;
-  position: absolute;
-  content: "";
-  top: -2px;
-  left: -2px;
-  z-index: 3;
 }
 
 .bg-primary-brand {

@@ -38,11 +38,16 @@ sub proxy ($self, $c, $name) {
     }
     my $body = $tx->res->body;
 
-    # TODO make this able to be specified in the config JSON file... not here
-    # replace anything in the response body here as needed (WIP)
-    if ($c->req->url->path =~ m/environment\.js/) {
-      $body =~ s!http://localhost:8080/puckboard-api/v1!/puckboard-api/v1!;
+    # do any transforms specified for this route
+    if ($self->config->{routes}->{$name}->{transforms}) {
+      for my $transform (@{$self->config->{routes}->{$name}->{transforms}}) {
+        my $condition = eval $transform->{condition};
+        if ($condition) {
+          eval $transform->{action};
+        }
+      }
     }
+
     $c->res->body($body);
     $c->rendered;
   } else {
