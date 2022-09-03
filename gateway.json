@@ -3,7 +3,7 @@
   "admin_user": "<%= $ENV{ADMIN_USER} // 'admin@admin.com' %>",
   "admin_pass": "<%= $ENV{ADMIN_PASS} // 'password' %>",
   "db_type": "<%= $ENV{DB_TYPE} // 'sqlite' %>",
-  "db_uri": "<%= $ENV{DB_URI} // 'postgresql://czell:password@localhost:5432/test' %>",
+  "db_uri": "<%= $ENV{DB_URI} // 'postgresql://somedude:password@localhost:5432/test' %>",
   "strip_headers_to_client": [ "authorization", "server", "x-powered-by"  ],
   "jwt_secret": "<%= $ENV{SECRET} // 'change_this' %>",
   "routes": {
@@ -12,11 +12,7 @@
       "enable_jwt": true,
       "jwt_claims": {
         "email": "$c->session->{user}->{email}"
-      },
-      "transforms": [{
-        "condition": "$c->req->url->path =~ m/environment\\.js/",
-        "action": "$body =~ s!http://localhost:8080/puckboard-api/v1!/puckboard-api/v1!"
-      }]
+      }
     },
     "/api/**" : {
       "uri": "<%= $ENV{BACKEND_URI} // 'http://localhost:9000/' %>",
@@ -50,6 +46,10 @@
     "enable_jwt": true,
     "jwt_claims": {
       "email": "$c->session->{user}->{email}"
-    }
+    },
+    "transforms": [{
+      "condition": "$c->req->url =~ m/environment\\.js/",
+      "action": "$body =~ s!http://localhost:8080/api/v1!/api/v1!"
+    }]
   }
 }

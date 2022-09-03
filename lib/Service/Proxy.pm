@@ -8,17 +8,18 @@ has 'ua';
 # takes the request object ($c) named route from the config
 sub proxy ($self, $c, $name) {
   my $request = $c->req->clone;
-  my $uri     = $self->config->{routes}->{$name}->{uri} // $self->config->{default_route}->{uri};
+  my $route_spec = $self->config->{routes}->{$name} // $self->config->{default_route};
+  my $uri     = $route_spec->{uri};
 
   # remove the trailing slash if present
   $uri =~ s!/$!!;
   $request->url(Mojo::URL->new($uri . $c->req->url));
 
   # see if we wanna use JWT for this proxy route
-  if ($self->config->{routes}->{$name}->{enable_jwt}) {
+  if ($route_spec->{enable_jwt}) {
     my $claims = {};
-    for my $claim (keys %{$self->config->{routes}->{$name}->{jwt_claims}}) {
-      $claims->{$claim} = eval $self->config->{routes}->{$name}->{jwt_claims}->{$claim};
+    for my $claim (keys %{$route_spec->{jwt_claims}}) {
+      $claims->{$claim} = eval $route_spec->{jwt_claims}->{$claim};
     }
     my $jwt = Mojo::JWT->new(claims => $claims, secret => $self->config->{jwt_secret});
 
@@ -26,29 +27,32 @@ sub proxy ($self, $c, $name) {
   }
 
   # add any other static-text headers specified in our config json
-  for my $header (keys %{$self->config->{routes}->{$name}->{other_headers} // {}}) {
-    $request->headers->add($header, $self->config->{routes}->{$name}->{other_headers}->{$header});
+  for my $header (keys %{$route_spec->{other_headers}}) {
+    $request->headers->add($header => $route_spec->{other_headers}->{$header});
   }
 
   my $tx = $self->ua->start(Mojo::Transaction::HTTP->new(req => $request));
+
+  # proxy actioning inspired from Mojolicious::Plugin::Proxy -> without it would not have figured this proxying out
+  # trick is to copy the res over to the $c->tx->res not $c->res directly
   if (defined($tx->res->code)) {
-    $c->res($tx->res);
-    for my $header (keys %{$tx->res->headers->to_hash}) {
-      $c->res->headers->add($header => $tx->res->headers->to_hash->{$header});
-    }
-    my $body = $tx->res->body;
+    my $res = $tx->res;
+    my $body = $res->body;
 
     # do any transforms specified for this route
-    if ($self->config->{routes}->{$name}->{transforms}) {
-      for my $transform (@{$self->config->{routes}->{$name}->{transforms}}) {
+    if ($route_spec->{transforms}) {
+      for my $transform (@{$route_spec->{transforms}}) {
         my $condition = eval $transform->{condition};
         if ($condition) {
           eval $transform->{action};
+          $res->headers->content_length(length($body));
+          $res->body($body);
         }
       }
     }
 
-    $c->res->body($body);
+    $res->fix_headers;
+    $c->tx->res($res);
     $c->rendered;
   } else {
 
