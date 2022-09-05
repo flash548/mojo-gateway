@@ -18,6 +18,7 @@ has 'user_controller';
 sub startup ($self) {
   my $config = $self->plugin('JSONConfig');
   $self->secrets([$config->{secret}]);
+  $self->sessions->cookie_name($config->{cookie_name} // 'mojolicious');
 
   # remove any headers we never want going back to the client
   $self->hook(
