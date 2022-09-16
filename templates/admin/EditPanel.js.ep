@@ -3,24 +3,31 @@ export class EditPanel extends Component {
     super(props);
     this.isEdit = props.selectedUser !== null;
 
-    this.state = props.selectedUser || {
-      email: '',
-      password: '',
-      reset_password: true,
-      is_admin: false,
-      dod_id: 0,
+    this.state = { 
+      isSubmitting: false,
+      resultMessage: '',
+      selectedUser: {...props.selectedUser} || {
+        email: '',
+        password: '',
+        is_admin: false,
+        dod_id: 0,
+      }
     };
   }
 
   async postUser(props) {
+    this.setState({ ...this.state, isSubmitting: true });
     let result = await fetch('/admin/users', {
       method: this.isEdit ? 'PUT' : 'POST',
-      body: JSON.stringify({ ...this.state })
+      body: JSON.stringify({ ...this.state.selectedUser })
     });
-    if (result.status === 201) {
+
+    if (result.status === 201 || result.status === 200) {
       let body = await result.json();
       this.isEdit ? props.onEditUser(body) : props.onAddUser(body);
-      props.closeClicked();
+      this.setState({ isSubmitting: false, resultMessage: 'Success!'});
+    } else {
+      this.setState({ isSubmitting: false, resultMessage: 'Failed!'});
     }
   }
 
@@ -46,24 +53,25 @@ export class EditPanel extends Component {
               }}>
               <div class="rux-form-field mb2">
                 <label for="user-email" class="rux-form-field__label">User Email</label>
-                <input id="user-email" type="email" value=${this.state.email} onChange=${(e) => this.setState({ email: e.target.value })} />
+                <input id="user-email" type="email" value=${this.state.selectedUser.email} onChange=${(e) => this.setState({ selectedUser : {...this.state.selectedUser, email: e.target.value }})} />
               </div>
               <div class="rux-form-field mb2">
                 <label for="user-password" class="rux-form-field__label">User Password</label>
-                <input id="user-password" type="password" value=${this.state.password} onChange=${(e) => this.setState({ password: e.target.value })} />
+                <input id="user-password" type="password" value=${this.state.selectedUser.password} onChange=${(e) => this.setState({ selectedUser : { ...this.state.selectedUser, password: e.target.value }})} />
               </div>
               <div class="rux-form-field mb2">
                 <label for="user-dod_id" class="rux-form-field__label">User DoDID</label>
-                <input id="user-dod_id" value=${this.state.dod_id} onChange=${(e) => this.setState({ dod_id: e.target.value })} />
+                <input id="user-dod_id" value=${this.state.selectedUser.dod_id} onChange=${(e) => this.setState({ selectedUser : { ...this.state.selectedUser, dod_id: e.target.value }})} />
               </div>
               <div class="rux-form-field mb2">
-                <${Checkbox} id="user-reset" label="Expire Password?" checked=${this.state.reset_password} onClick=${(checked) => this.setState({ reset_password: checked })} />
+                <${Checkbox} id="user-reset" label="Expire Password?" checked=${this.state.selectedUser.reset_password} onClick=${(checked) => this.setState({ selectedUser : { ...this.state.selectedUser, reset_password: checked }})} />
               </div>
               <div class="rux-form-field mb2">
-                <${Checkbox} id="user-admin" label="Is Admin?" checked=${this.state.is_admin} onClick=${(checked) => this.setState({ is_admin: checked })} />
+                <${Checkbox} id="user-admin" label="Is Admin?" checked=${this.state.selectedUser.is_admin} onClick=${(checked) => this.setState({ selectedUser : { ...this.state.selectedUser, is_admin: checked }})} />
               </div>
-              <button type="submit" class="rux-button ma2">Submit</button>
+              <button type="submit" disabled=${this.state.isSubmitting} class="rux-button ma2">${this.state.isSubmitting ? 'Sending...' : 'Submit'}</button>
             </form>
+            <span>${this.state.resultMessage}</span>
           </div>
         </div>
       </div>

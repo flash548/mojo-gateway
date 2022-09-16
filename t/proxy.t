@@ -19,7 +19,7 @@ sub start {
   for my $header (keys %{$transaction->req->headers->to_hash}) {
     $res->headers->add($header => $transaction->req->headers->to_hash->{$header});
   }
-  $res->headers->add(location => '/frontend');
+  $res->headers->add(location     => '/frontend');
   $res->headers->add(content_type => 'application/json');
   $tx->res($res);
   return $tx;
@@ -28,13 +28,13 @@ sub start {
 package main;
 
 my $config = {
-  test       => 1,
-  admin_user => 'admin@test.com',
-  admin_pass => 'testpass',
-  secret     => 'secret',
-  jwt_secret => 'secret',
-  strip_headers_to_client => [  ],
-  routes     => {
+  test                    => 1,
+  admin_user              => 'admin@test.com',
+  admin_pass              => 'testpass',
+  secret                  => 'secret',
+  jwt_secret              => 'secret',
+  strip_headers_to_client => [],
+  routes                  => {
     '/s' => {
       uri        => "http://localhost:3000/frontend",
       enable_jwt => 1,
@@ -47,9 +47,7 @@ my $config = {
 };
 
 subtest 'Test JWT injected if config says to' => sub {
-  my $t = Test::Mojo->new(
-    'Gateway',
-    $config);
+  my $t = Test::Mojo->new('Gateway', $config);
 
   $t->ua->max_redirects(3);
 
@@ -65,13 +63,11 @@ subtest 'Test JWT injected if config says to' => sub {
 
   # test that the JWT was injected as spec'd in the config json
   $t->get_ok('/s')->status_is(200)->header_exists('Authorization', 'Authorization header present as expected')
-    ->header_is('location' => '/frontend')
-    ->header_is('content_type' => 'application/json')
-    ->tap(sub ($t) {
-      my $jwt = Mojo::JWT->new(secret => 'secret')->decode(
-        do { my $val = $t->tx->res->headers->authorization; $val =~ s/Bearer\s//g; $val; }
-      );
-      return is('admin@test.com', $jwt->{email});
+    ->header_is('location' => '/frontend')->header_is('content_type' => 'application/json')->tap(sub ($t) {
+    my $jwt = Mojo::JWT->new(secret => 'secret')->decode(
+      do { my $val = $t->tx->res->headers->authorization; $val =~ s/Bearer\s//g; $val; }
+    );
+    return is('admin@test.com', $jwt->{email});
     });
 
   # should be no JWT on the default route as spec'd in the config json
@@ -79,19 +75,17 @@ subtest 'Test JWT injected if config says to' => sub {
     ->header_exists_not('Authorization', 'Authorization header NOT present as expected');
 
   # should strip authorization header from ever getting to client - if provided in config
-  $t->app->config->{strip_headers_to_client} = [ 'authorization' ];
-   # test that the JWT was injected as spec'd in the config json
+  $t->app->config->{strip_headers_to_client} = ['authorization'];
+
+  # test that the JWT was injected as spec'd in the config json
   $t->get_ok('/s')->status_is(200)->header_exists_not('Authorization', 'Authorization header NOT present as commanded')
-    ->header_is('location' => '/frontend')
-    ->header_is('content_type' => 'application/json');
+    ->header_is('location' => '/frontend')->header_is('content_type' => 'application/json');
 
 };
 
 subtest 'check user-agent and other client headers are preserved after proxy' => sub {
-  my $t = Test::Mojo->new(
-    'Gateway',
-    $config);
-    
+  my $t = Test::Mojo->new('Gateway', $config);
+
   $t->ua->max_redirects(3);
 
   # inject our mocked UserAgent class
@@ -110,12 +104,11 @@ subtest 'check user-agent and other client headers are preserved after proxy' =>
 
 subtest 'check that we can do response body transforms' => sub {
   my $mod_config = $config;
-  $config->{routes}->{'/s'}->{transforms} = [ { condition => '$c->req->url->path =~ m/\/s/', action => '$body = "Mojo Rocks!"' } ];
+  $config->{routes}->{'/s'}->{transforms}
+    = [{condition => '$c->req->url->path =~ m/\/s/', action => '$body = "Mojo Rocks!"'}];
 
-  my $t = Test::Mojo->new(
-    'Gateway',
-    $mod_config);
-    
+  my $t = Test::Mojo->new('Gateway', $mod_config);
+
   $t->ua->max_redirects(3);
 
   # inject our mocked UserAgent class
@@ -129,9 +122,7 @@ subtest 'check that we can do response body transforms' => sub {
     ->content_unlike(qr/login/i, 'Login OK');
 
   # make sure we modified the body as specified for this route
-  $t->get_ok('/s')
-    ->status_is(200)
-    ->content_like(qr/Mojo Rocks!/);
+  $t->get_ok('/s')->status_is(200)->content_like(qr/Mojo Rocks!/);
 };
 
 done_testing();

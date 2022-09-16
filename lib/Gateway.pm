@@ -4,17 +4,16 @@ use Mojo::Pg;
 use Mojo::SQLite;
 
 use lib qw(./lib);
-use Service::User;
+use Service::UserService;
 use Service::Proxy;
-use Controller::Admin;
-use Controller::User;
+use Controller::AdminController;
+use Controller::UserController;
 
 has 'user_service';
 has 'proxy_service';
 has 'admin_controller';
 has 'user_controller';
 
-# This method will run once at server start
 sub startup ($self) {
   my $config = $self->plugin('JSONConfig');
   $self->secrets([$config->{secret}]);
@@ -52,10 +51,10 @@ sub startup ($self) {
 
   $self->db_conn->auto_migrate(1)->migrations->from_file('./migrations/data.sql');
 
-  $self->user_service(Service::User->new(db => $self->db_conn->db, config => $config));
+  $self->user_service(Service::UserService->new(db => $self->db_conn->db, config => $config));
   $self->proxy_service(Service::Proxy->new(config => $config, ua => Mojo::UserAgent->new));
-  $self->admin_controller(Controller::Admin->new(user_service => $self->user_service));
-  $self->user_controller(Controller::User->new(user_service => $self->user_service));
+  $self->admin_controller(Controller::AdminController->new(user_service => $self->user_service));
+  $self->user_controller(Controller::UserController->new(user_service => $self->user_service));
 
   # create the admin user if it doesn't exist
   $self->user_service->create_admin_user;
@@ -67,10 +66,20 @@ sub startup ($self) {
 
   # all routes from here-on require authentication
   my $authorized_routes = $self->routes->under('/' => sub ($c) { $self->user_service->check_user_status($c) });
-  $authorized_routes->get('/admin' => sub ($c) { $self->admin_controller->admin_page_get($c) });
-  $authorized_routes->post('/admin/users' => sub ($c) { $self->admin_controller->add_user_post($c) });
-  $authorized_routes->put('/admin/users' => sub ($c) { $self->admin_controller->update_user_put($c) });
-  $authorized_routes->get('/users' => sub ($c) { $self->admin_controller->all_users_get($c) });
+
+  # the routes under '/admin' requires admin-type, authenticated users
+  my $admin_routes = $authorized_routes->under('/admin' => sub ($c) { 
+    if (!$self->user_service->check_user_admin($c)) {
+      $c->rendered(403);
+      return;
+    }
+
+    return 1;
+  });
+  $admin_routes->get('/' => sub ($c) { $self->admin_controller->admin_page_get($c) });
+  $admin_routes->post('/users' => sub ($c) { $self->admin_controller->add_user_post($c) });
+  $admin_routes->put('/users' => sub ($c) { $self->admin_controller->update_user_put($c) });
+  $admin_routes->get('/users' => sub ($c) { $self->admin_controller->users_get($c) });
 
   # show the password change form
   $authorized_routes->get('/auth/password/change' => sub ($c) { $self->user_controller->password_change_form_get($c) });
