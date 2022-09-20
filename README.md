@@ -118,11 +118,11 @@ volumes:
 The Admin interface (WIP) is located at `/admin`.  It is available only to authenticated users with the `is_admin` field set to true.  The interface is written in Preact JS and uses the browswer
 fetch API to interact with the API.  
 
-Within the admin interface you can (or eventually will be able to):
+Within the admin interface you can:
 
-- Add user accounts
-- Delete user accounts (WIP)
-- Update user accounts (change, expire passwords, change names, etc) (WIP)
+- ✅ Add user accounts
+- ✅ Delete user accounts (WIP)
+- ✅ Update user accounts (change, expire passwords, change names, etc)
 - View traffic stats (route usage, status, etc) (WIP)
 
 ## Roadmap
