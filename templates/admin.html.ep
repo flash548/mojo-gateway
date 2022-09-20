@@ -40,6 +40,16 @@
                 .catch((err) => {});
             }
 
+            deleteUser = (user) => {
+              fetch(`/admin/users?email=${user.email.toLowerCase()}`, {
+                method: "DELETE",
+              })
+              .then((result) => {
+                this.setState({ users: this.state.users.filter(u => u.email.toLowerCase() !== user.email.toLowerCase())});
+              })
+              .catch((err) => { console.log(err)});
+            }
+
             render() {
               return html`
                 <div class="relative flex flex-column w-100 pa2">
@@ -76,6 +86,7 @@
                   <${UserTable} 
                     users=${this.state.users}
                     rowClicked=${(user) => this.setState({ action: 'Edit User', show: true, selectedUser: {...user} })} 
+                    rowDelete=${this.deleteUser}
                   />
                 </div>
             `;

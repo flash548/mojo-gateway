@@ -8,6 +8,7 @@ use Service::UserService;
 use Service::Proxy;
 use Controller::AdminController;
 use Controller::UserController;
+use Constants;
 
 has 'user_service';
 has 'proxy_service';
@@ -70,7 +71,7 @@ sub startup ($self) {
   # the routes under '/admin' requires admin-type, authenticated users
   my $admin_routes = $authorized_routes->under('/admin' => sub ($c) { 
     if (!$self->user_service->check_user_admin($c)) {
-      $c->rendered(403);
+      $c->rendered(Constants::HTTP_FORBIDDEN);
       return;
     }
 
@@ -80,6 +81,8 @@ sub startup ($self) {
   $admin_routes->post('/users' => sub ($c) { $self->admin_controller->add_user_post($c) });
   $admin_routes->put('/users' => sub ($c) { $self->admin_controller->update_user_put($c) });
   $admin_routes->get('/users' => sub ($c) { $self->admin_controller->users_get($c) });
+  $admin_routes->get('/users' => sub ($c) { $self->admin_controller->users_get($c) });
+  $admin_routes->delete('/users' => sub ($c) { $self->admin_controller->users_delete($c) });
 
   # show the password change form
   $authorized_routes->get('/auth/password/change' => sub ($c) { $self->user_controller->password_change_form_get($c) });

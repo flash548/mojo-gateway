@@ -12,10 +12,12 @@ export class UserTable extends Component {
         <th class="tc">Password Reset?</th>
         <th>Last Reset</th>
         <th>Last Login</th>
+        <th></th>
+        <th></th>
       </tr>
       ${props.users.map(
         (user) => html`
-          <tr class="pointer" onClick=${() => props.rowClicked({...user})}>
+          <tr>
             <td>${user.email}</td>
             <td>
               <span class="w-100 flex justify-center">
@@ -29,6 +31,12 @@ export class UserTable extends Component {
             </td>
             <td>${user.last_reset}</td>
             <td>${user.last_login}</td>
+            <td>
+              <${Icon} icon="edit" onClick=${() => props.rowClicked({...user})} />
+            </td>
+            <td>
+              <${Icon} icon="delete" onClick=${() => props.rowDelete({...user})} />
+            </td>
           </tr>
         `
       )}
