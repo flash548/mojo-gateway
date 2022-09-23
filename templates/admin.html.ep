@@ -1,106 +1,111 @@
 <html>
-    <head>
-        <link rel="stylesheet" href="/css/astro.min.css" />
-        <link rel="stylesheet" href="/css/astro-icons.min.css" />
-        <link rel="stylesheet" href="/css/tachyons.min.css" />
-        <link href='http://fonts.googleapis.com/css?family=Roboto:400,100,100italic,300,300italic,400italic,500,500italic,700,700italic,900italic,900' rel='stylesheet' type='text/css'>
-    </head>
-    <body class="dark-theme">
-        <div class="w-100 flex justify-center flex-column">
-            <div class="w-100 flex justify-end">
-                <button type="button" class="rux-button  ma2">Add User</button>
-            </div>
-            <div>                
-                <div class="rux-progress overflow-hidden">
-                  <progress />
-                </div>
-            </div>
+  <head>
+    <title>Admin Interface</title>
+    <link rel="stylesheet" href="/css/astro.min.css" />
+    <link rel="stylesheet" href="/css/astro-icons.min.css" />
+    <link rel="stylesheet" href="/css/tachyons.min.css" />
+    <link
+      href="http://fonts.googleapis.com/css?family=Roboto:400,100,100italic,300,300italic,400italic,500,500italic,700,700italic,900italic,900"
+      rel="stylesheet"
+      type="text/css"
+    />
+  </head>
+  <body class="dark-theme">
+    <div class="w-100 flex justify-center flex-column">
+      <div class="w-100 flex justify-end">
+        <button type="button" class="rux-button ma2">Add User</button>
+      </div>
+      <div>
+        <div class="rux-progress overflow-hidden">
+          <progress></progress>
         </div>
-        <script type="module">
-          import { h, Component, render } from '/js/preact.js';
-          import htm from '/js/htm.js';
-          const html = htm.bind(h);
-        
-          class App extends Component {
-            constructor(props) {
-              super(props);
-              this.state = { 
-                users: [],
-                show: false,
-                selectedUser: {},
-              };
-            }
+      </div>
+    </div>
+    <script type="module">
+        import { h, Component, render } from '/js/preact.js';
+        import htm from '/js/htm.js';
+        const html = htm.bind(h);
 
-            componentDidMount() {
-              fetch("/admin/users", {
-                method: "GET",
-              })
-                .then((result) => result.json())
-                .then((users) => this.setState({ users }))
-                .catch((err) => {});
-            }
-
-            deleteUser = (user) => {
-              fetch(`/admin/users?email=${user.email.toLowerCase()}`, {
-                method: "DELETE",
-              })
-              .then((result) => {
-                this.setState({ users: this.state.users.filter(u => u.email.toLowerCase() !== user.email.toLowerCase())});
-              })
-              .catch((err) => { console.log(err)});
-            }
-
-            render() {
-              return html`
-                <div class="relative flex flex-column w-100 pa2">
-                  <${TabPanel} title="Admin" tabs=${[ 
-                    { title: "Users" }]} 
-                  />
-                  <div class="flex w-100 justify-end">
-                    <button 
-                      onClick=${() => this.setState({ 
-                        show: true, 
-                        action: 'Add User', 
-                        selectedUser: null })} 
-                      class="rux-button ma2" 
-                      type="button"
-                    >
-                      Add User
-                    </button>
-                  </div>
-                  ${ this.state.show && 
-                    html`<${EditPanel} 
-                      title=${this.state.action}
-                      backgroundClicked=${() => this.setState({ show: false })}
-                      onAddUser=${(user) => this.setState({ users: [...this.state.users, user ]})}
-                      onEditUser=${(user) => {
-                        const index = this.state.users.findIndex((elem) => elem.email === user.email);
-                        if (index !== undefined) { 
-                          const updatedState = [ ...this.state.users ];
-                          updatedState[index] = user;
-                          this.setState({ users: [ ...updatedState ]});
-                        }
-                      }}
-                      selectedUser=${this.state.selectedUser}
-                      closeClicked=${() => this.setState({ show: false })} />` }
-                  <${UserTable} 
-                    users=${this.state.users}
-                    rowClicked=${(user) => this.setState({ action: 'Edit User', show: true, selectedUser: {...user} })} 
-                    rowDelete=${this.deleteUser}
-                  />
-                </div>
-            `;
+        class App extends Component {
+          constructor(props) {
+            super(props);
+            this.state = {
+              users: [],
+              show: false,
+              selectedUser: {},
+            };
           }
-        }
 
-        %= include 'admin/UserTable', format => 'js'
-        %= include 'admin/TabPanel', format => 'js'
-        %= include 'admin/EditPanel', format => 'js'
-        %= include 'admin/Icon', format => 'js'
-        %= include 'admin/Status', format => 'js'
-        %= include 'admin/Checkbox', format => 'js'
-      
-        render(html`<${App} />`, document.body);
-        </script>
-    </body>
+          componentDidMount() {
+            fetch("/admin/users", {
+              method: "GET",
+            })
+              .then((result) => result.json())
+              .then((users) => this.setState({ users }))
+              .catch((err) => {});
+          }
+
+          deleteUser = (user) => {
+            fetch(`/admin/users?email=${user.email.toLowerCase()}`, {
+              method: "DELETE",
+            })
+            .then((result) => {
+              this.setState({ users: this.state.users.filter(u => u.email.toLowerCase() !== user.email.toLowerCase())});
+            })
+            .catch((err) => { console.log(err)});
+          }
+
+          render() {
+            return html`
+              <div class="relative flex flex-column w-100 pa2">
+                <${TabPanel} title="Admin" tabs=${[
+                  { title: "Users" }]}
+                />
+                <div class="flex w-100 justify-end">
+                  <button
+                    onClick=${() => this.setState({
+                      show: true,
+                      action: 'Add User',
+                      selectedUser: null })}
+                    class="rux-button ma2"
+                    type="button"
+                  >
+                    Add User
+                  </button>
+                </div>
+                ${ this.state.show &&
+                  html`<${EditPanel}
+                    title=${this.state.action}
+                    backgroundClicked=${() => this.setState({ show: false })}
+                    onAddUser=${(user) => this.setState({ users: [...this.state.users, user ]})}
+                    onEditUser=${(user) => {
+                      const index = this.state.users.findIndex((elem) => elem.email === user.email);
+                      if (index !== undefined) {
+                        const updatedState = [ ...this.state.users ];
+                        updatedState[index] = user;
+                        this.setState({ users: [ ...updatedState ]});
+                      }
+                    }}
+                    selectedUser=${this.state.selectedUser}
+                    closeClicked=${() => this.setState({ show: false })} />` }
+                <${UserTable}
+                  users=${this.state.users}
+                  rowClicked=${(user) => this.setState({ action: 'Edit User', show: true, selectedUser: {...user} })}
+                  rowDelete=${this.deleteUser}
+                />
+              </div>
+          `;
+        }
+      }
+
+      %= include 'admin/UserTable', format => 'js'
+      %= include 'admin/TabPanel', format => 'js'
+      %= include 'admin/EditPanel', format => 'js'
+      %= include 'admin/Icon', format => 'js'
+      %= include 'admin/Status', format => 'js'
+      %= include 'admin/Checkbox', format => 'js'
+
+      render(html`<${App} />`, document.body);
+    </script>
+  </body>
 </html>

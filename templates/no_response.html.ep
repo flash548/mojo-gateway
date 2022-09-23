@@ -1,14 +1,13 @@
 <html>
 <head>
-    <link rel="stylesheet" href="/css/fonts.css"/>
-    <link rel="stylesheet" href="/css/puckboard.css"/>
+    <link rel="stylesheet" href="/css/astro.min.css"/>
     <link rel="stylesheet" href="/css/tachyons.min.css"/>
 </head>
 
-<body data-theme="dark" class="bg-primary-background">
+<body class="dark-theme">
 
 <div class="flex items-center justify-center mb4">
-  <p class="page-heading primary-brand">Whoa!! Unable to fetch that page!</p>
+  <h2>Whoa!! Unable to fetch that page!</h2>
 </div>
 
 </body>

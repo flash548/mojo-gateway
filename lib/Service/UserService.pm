@@ -159,7 +159,7 @@ sub update_user ($self, $c) {
     # if we have to go in an manually expire someone's account
     my $user = $c->req->json;
     for my $key (keys %{$user}) {
-      if ($user->{$key}) {
+      if (defined($user->{$key})) {
 
         # skip disallowed fields (read-only)
         next if grep { $_ =~ /$key/ } @disallowed_fields;

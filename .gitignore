@@ -3,6 +3,7 @@
 *.db
 docker-compose.yml
 *.sh
+*.swp
 .idea/
 .vscode/
 .docker/
