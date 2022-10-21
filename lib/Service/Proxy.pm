@@ -5,7 +5,7 @@ use Mojo::JWT;
 has 'config';
 has 'ua';
 
-# takes the request object ($c) named route from the config
+# takes the request object ($c) and named route from the config ($name)
 sub proxy ($self, $c, $name) {
   my $request = $c->req->clone;
   my $route_spec = $self->config->{routes}->{$name} // $self->config->{default_route};

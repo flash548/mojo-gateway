@@ -18,23 +18,24 @@ if (my $flash = flash 'info') {
     <title><%= app->config->{login_page_title} %></title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="/css/astro.min.css" />
+    <link rel="stylesheet" href="/css/dracula-ui.css" />
     <link rel="stylesheet" href="/css/tachyons.min.css" />
   </head>
 
-  <body class="dark-theme">
+  <body class="drac-bg-black">
     <div class="vh-100 w-100 flex flex-column justify-center items-center">
-      <div class="pt4 ph4 br2" style="background-color: var(--surfaceElements)">
-        <div class="mb4">
+      <div variant="subtle"
+      class="drac-box drac-card drac-card-subtle drac-border-purple drac-bg-purple drac-p-md drac-m-md">
+        <div class="mb4 drac-text-purple">
           <h2><%= app->config->{login_page_title} %></h2>
         </div>
         <div>
           <% if (stash 'login_failed') { %>
-          <div style="color: var(--statusDarkSerious)">
+          <div class="drac-text drac-line-height drac-text-red">
             Login failed: User or password incorrect!
           </div>
           <%} %> <% if ($flash_info) { %>
-          <div style="color: var(--statusDarkSerious)"><%= $flash_info %></div>
+          <div class="drac-text drac-line-height drac-text-red"><%= $flash_info %></div>
           <% } %>
           <form action="/auth/login" method="POST">
             <input
@@ -42,10 +43,10 @@ if (my $flash = flash 'info') {
               name="return_to"
               value="<%= stash 'return_to' %>"
             />
-            <div class="rux-form-field ma2">
-              <label class="mb1" for="email-username">Email</label>
+            <div class="ma2">
+              <label class="mb1 drac-text drac-text-white" for="email-username">Email</label>
               <input
-                class="mt1"
+                class="mt1 drac-input drac-input-purple drac-text-purple"
                 id="username"
                 name="username"
                 autocapitalize="none"
@@ -55,11 +56,11 @@ if (my $flash = flash 'info') {
                 value="<%= stash 'user' %>"
               />
             </div>
-            <div class="rux-form-field ma2">
-              <label class="mb1" for="password">Password</label>
+            <div class="ma2">
+              <label class="mb1 drac-text drac-text-white" for="password">Password</label>
               <input
                 type="password"
-                class="mt1"
+                class="mt1 drac-input drac-input-purple drac-text-purple"
                 id="password"
                 autocapitalize="none"
                 autocorrect="none"
@@ -68,7 +69,7 @@ if (my $flash = flash 'info') {
               />
             </div>
             <div class="flex w-100 justify-end">
-              <button class="rux-button pointer ma2" type="submit">
+              <button class="drac-btn drac-bg-purple pointer ma2" type="submit">
                 Login
               </button>
             </div>

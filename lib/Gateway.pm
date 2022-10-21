@@ -65,10 +65,20 @@ sub startup ($self) {
   $self->routes->get('/login'  => sub ($c) { $self->user_controller->login_page_get($c) });
   $self->routes->post('/auth/login' => sub ($c) { $self->user_controller->login_post($c) });
 
+  # add any config-file-defined proxy routes that do not require authentication
+  for my $route_spec (keys %{$config->{routes}}) {
+    next if !defined($config->{routes}->{$route_spec}->{requires_login}) || $config->{routes}->{$route_spec}->{requires_login};
+    $self->routes->any(
+      $route_spec => sub ($c) {
+        $self->proxy_service->proxy($c, $route_spec);
+      }
+    );
+  }
+
   # all routes from here-on require authentication
   my $authorized_routes = $self->routes->under('/' => sub ($c) { $self->user_service->check_user_status($c) });
 
-  # the routes under '/admin' requires admin-type, authenticated users
+  # the routes under '/admin/**' requires admin-blessed, authenticated users
   my $admin_routes = $authorized_routes->under('/admin' => sub ($c) { 
     if (!$self->user_service->check_user_admin($c)) {
       $c->rendered(Constants::HTTP_FORBIDDEN);
@@ -84,12 +94,13 @@ sub startup ($self) {
   $admin_routes->get('/users' => sub ($c) { $self->admin_controller->users_get($c) });
   $admin_routes->delete('/users' => sub ($c) { $self->admin_controller->users_delete($c) });
 
-  # show the password change form
+  # the password change form - that only existing (auth'd) users can get to that is
   $authorized_routes->get('/auth/password/change' => sub ($c) { $self->user_controller->password_change_form_get($c) });
   $authorized_routes->post('/auth/password/change' => sub ($c) { $self->user_controller->password_change_post($c) });
 
-  # add our proxy routes requiring authentication
+  # add any config-file-defined proxy routes requiring authentication
   for my $route_spec (keys %{$config->{routes}}) {
+    next if defined($config->{routes}->{$route_spec}->{requires_login}) && !$config->{routes}->{$route_spec}->{requires_login};
     $authorized_routes->any(
       $route_spec => sub ($c) {
         $self->proxy_service->proxy($c, $route_spec);

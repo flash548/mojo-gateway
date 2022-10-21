@@ -1,12 +1,12 @@
 <html>
 <head>
-    <link rel="stylesheet" href="/css/astro.min.css"/>
+    <link rel="stylesheet" href="/css/dracula-ui.css"/>
     <link rel="stylesheet" href="/css/tachyons.min.css"/>
 </head>
 
-<body class="dark-theme">
+<body class="drac-bg-black">
 
-<div class="flex items-center justify-center mb4">
+<div class="flex items-center justify-center mb4 drac-text drac-text-purple">
   <h2>Whoa!! Unable to fetch that page!</h2>
 </div>
 

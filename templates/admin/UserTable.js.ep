@@ -3,43 +3,74 @@ export class UserTable extends Component {
     super(props);
   }
 
-
   render(props) {
-    return html` <table class="rux-table">
-      <tr>
-        <th>Email</th>
-        <th class="tc">Admin?</th>
-        <th class="tc">Password Reset?</th>
-        <th>Last Reset</th>
-        <th>Last Login</th>
-        <th></th>
-        <th></th>
-      </tr>
+    return html`<div class="h-100 w-100 overflow-y-auto"> 
       ${props.users.map(
-        (user) => html`
-          <tr>
-            <td>${user.email}</td>
-            <td>
-              <span class="w-100 flex justify-center">
-                <${Status} status=${user.is_admin ? 'normal' : 'off' } />
-              </span>
-            </td>
-            <td>
-              <span class="w-100 flex justify-center">
-                <${Status} status=${user.reset_password ? 'standby' : 'off' } />
-              </span>
-            </td>
-            <td>${user.last_reset}</td>
-            <td>${user.last_login}</td>
-            <td>
-              <${Icon} icon="edit" onClick=${() => props.rowClicked({...user})} />
-            </td>
-            <td>
-              <${Icon} icon="delete" onClick=${() => props.rowDelete({...user})} />
-            </td>
-          </tr>
-        `
+        (user) => html`<div
+          variant="subtle"
+          class="drac-box drac-card drac-card-subtle drac-border-purple drac-bg-purple drac-p-md drac-m-md"
+        >
+          <div
+            class="drac-text drac-text-cyan flex flex-row justify-between w-100"
+          >
+            <div>
+              <div>
+                ${html`<span class="drac-text-bold"
+                  >Email:</span
+                >`}${` ${user.email}`}
+              </div>
+              <div>
+                ${html`<span class="drac-text-bold">Admin?:</span>`}${` ${
+                  user.is_admin ? "Yes" : "No"
+                }`}
+              </div>
+              <div>
+                ${html`<span class="drac-text-bold"
+                  >Password Expired?:</span
+                >`}${` ${user.reset_password ? "Yes" : "No"}`}
+              </div>
+              <div>
+                ${html`<span class="drac-text-bold"
+                  >Last Password Reset:</span
+                >`}${` ${
+                  user.last_reset
+                    ? new Date(user.last_reset).toLocaleDateString()
+                    : "never"
+                }`}
+              </div>
+              <div>
+                ${html`<span class="drac-text-bold">Last Login:</span>`}${` ${
+                  user.last_login
+                    ? new Date(user.last_login).toLocaleString()
+                    : "never"
+                }`}
+              </div>
+            </div>
+            <div class="flex flex-row flex h-100 justify-center items-center">
+              <div
+                class="drac-bg-purple pv2 ph2 pa3 mh2 br2 pointer tc"
+                title="Edit User"
+                onClick=${() => {
+                  props.rowClicked({ ...user });
+                  e.stopImmediatePropagation();
+                }}
+              >
+                <a class="pointer drac-text drac-text-black">...</a>
+              </div>
+              <div
+                class="drac-bg-red pv2 pa3 br2 pointer tc"
+                title="Delete User"
+                onClick=${(e) => {
+                  props.rowDelete && props.rowDelete({ ...user });
+                  e.stopImmediatePropagation();
+                }}
+              >
+                <a class="pointer drac-text drac-text-black">X</a>
+              </div>
+            </div>
+          </div>
+        </div>`
       )}
-    </table>`;
+    </div>`;
   }
 }

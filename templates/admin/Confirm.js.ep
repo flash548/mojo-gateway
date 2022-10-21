@@ -1,0 +1,44 @@
+export class Confirm extends Component {
+  constructor(props) {
+    super(props);
+  }
+
+  render(props) {
+    return html`
+      <div
+        onClick=${() => props.backgroundClicked && props.backgroundClicked()}
+        class="z-1000 absolute left-0 top-0 w-100 vh-100 bg-black-50 flex justify-center items-center"
+      >
+        <div
+          variant="subtle"
+          class="drac-box drac-card drac-border-purple drac-bg-black-secondary drac-p-md drac-m-md z-2000 w-auto drac-border-purple ba1 b--solid"
+          onClick=${(e) => {
+            e.stopPropagation();
+          }}
+        >
+          <div
+            class="flex flex-column justify-center items-center drac-bg-black-secondary"
+          >
+            <h2 class="drac-heading drac-heading-l drac-text-purple">
+              ${props.text}
+            </h2>
+            <div class="flex flex-row w-100 justify-between items-center mt3">
+              <a
+                onClick=${() => props.cancel()}
+                class="drac-link drac-text drac-text-purple pointer"
+                >No</a
+              >
+              <button
+                type="button"
+                onClick=${() => props.confirm()}
+                class="drac-btn drac-bg-purple"
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+}

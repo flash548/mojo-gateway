@@ -9,10 +9,12 @@ export class Checkbox extends Component {
       <span class="rux-checkbox flex w-100 justify-start" onClick=${() => { props.onClick && props.onClick(!props.checked); }}>
         <input
           id=${props.id || 'checkbox'}
+          name=${props.name}
+          class="drac-checkbox drac-checkbox-purple"
           type="checkbox"          
           checked=${props.checked}
         />
-        <label>${props.label}</label>
+        <label class="drac-text drac-text-white" for=${props.name}>${props.label}</label>
       </span>
     `;
   }

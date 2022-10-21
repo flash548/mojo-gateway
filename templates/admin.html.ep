@@ -1,26 +1,19 @@
 <html>
   <head>
     <title>Admin Interface</title>
-    <link rel="stylesheet" href="/css/astro.min.css" />
-    <link rel="stylesheet" href="/css/astro-icons.min.css" />
+    <link rel="stylesheet" href="/css/dracula-ui.css" />
     <link rel="stylesheet" href="/css/tachyons.min.css" />
-    <link
-      href="http://fonts.googleapis.com/css?family=Roboto:400,100,100italic,300,300italic,400italic,500,500italic,700,700italic,900italic,900"
-      rel="stylesheet"
-      type="text/css"
-    />
   </head>
-  <body class="dark-theme">
+  <body class="drac-bg-black">
     <div class="w-100 flex justify-center flex-column">
-      <div class="w-100 flex justify-end">
-        <button type="button" class="rux-button ma2">Add User</button>
-      </div>
       <div>
-        <div class="rux-progress overflow-hidden">
-          <progress></progress>
+        <div>
+          <h2 class="drac-heading drac-heading-xl drac-text-white">
+            Loading...
+          </h2>
         </div>
       </div>
-    </div>
+    </di>v
     <script type="module">
         import { h, Component, render } from '/js/preact.js';
         import htm from '/js/htm.js';
@@ -33,6 +26,7 @@
               users: [],
               show: false,
               selectedUser: {},
+              showConfirm: false,
             };
           }
 
@@ -50,15 +44,15 @@
               method: "DELETE",
             })
             .then((result) => {
-              this.setState({ users: this.state.users.filter(u => u.email.toLowerCase() !== user.email.toLowerCase())});
+              this.setState({ users: this.state.users.filter(u => u.email.toLowerCase() !== user.email.toLowerCase()), showConfirm: false});
             })
             .catch((err) => { console.log(err)});
           }
 
           render() {
             return html`
-              <div class="relative flex flex-column w-100 pa2">
-                <${TabPanel} title="Admin" tabs=${[
+              <div class="relative flex flex-column w-100 pa2 vh-100">
+                <${TabPanel} title="Mojo::Gateway Admin" tabs=${[
                   { title: "Users" }]}
                 />
                 <div class="flex w-100 justify-end">
@@ -67,12 +61,15 @@
                       show: true,
                       action: 'Add User',
                       selectedUser: null })}
-                    class="rux-button ma2"
+                    class="drac-btn drac-bg-purple ma2"
                     type="button"
                   >
                     Add User
                   </button>
                 </div>
+                ${ this.state.showConfirm &&
+                  html`<${Confirm} text="Really Delete?" cancel=${() => this.setState({ showConfirm: false })} confirm=${() => this.deleteUser(this.state.selectedUser)} />`
+                }
                 ${ this.state.show &&
                   html`<${EditPanel}
                     title=${this.state.action}
@@ -91,7 +88,7 @@
                 <${UserTable}
                   users=${this.state.users}
                   rowClicked=${(user) => this.setState({ action: 'Edit User', show: true, selectedUser: {...user} })}
-                  rowDelete=${this.deleteUser}
+                  rowDelete=${(user) => this.setState({ showConfirm: true, selectedUser: {...user} })}
                 />
               </div>
           `;
@@ -101,9 +98,8 @@
       %= include 'admin/UserTable', format => 'js'
       %= include 'admin/TabPanel', format => 'js'
       %= include 'admin/EditPanel', format => 'js'
-      %= include 'admin/Icon', format => 'js'
-      %= include 'admin/Status', format => 'js'
       %= include 'admin/Checkbox', format => 'js'
+      %= include 'admin/Confirm', format => 'js'
 
       render(html`<${App} />`, document.body);
     </script>

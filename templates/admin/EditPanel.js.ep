@@ -3,32 +3,32 @@ export class EditPanel extends Component {
     super(props);
     this.isEdit = props.selectedUser !== null;
 
-    this.state = { 
+    this.state = {
       isSubmitting: false,
-      resultMessage: '',
-      selectedUser: {...props.selectedUser} || {
-        email: '',
-        password: '',
+      resultMessage: "",
+      selectedUser: { ...props.selectedUser } || {
+        email: "",
+        password: "",
         is_admin: false,
         dod_id: 0,
-      }
+      },
     };
   }
 
   async postUser(props) {
     this.setState({ ...this.state, isSubmitting: true });
-    let result = await fetch('/admin/users', {
-      method: this.isEdit ? 'PUT' : 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ ...this.state.selectedUser })
+    let result = await fetch("/admin/users", {
+      method: this.isEdit ? "PUT" : "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ...this.state.selectedUser }),
     });
 
     if (result.status === 201 || result.status === 200) {
       let body = await result.json();
       this.isEdit ? props.onEditUser(body) : props.onAddUser(body);
-      this.setState({ isSubmitting: false, resultMessage: 'Success!'});
+      this.setState({ isSubmitting: false, resultMessage: "Success!" });
     } else {
-      this.setState({ isSubmitting: false, resultMessage: 'Failed!'});
+      this.setState({ isSubmitting: false, resultMessage: "Failed!" });
     }
   }
 
@@ -39,40 +39,125 @@ export class EditPanel extends Component {
         class="z-1000 absolute left-0 top-0 w-100 vh-100 bg-black-50"
       >
         <div
-          class="pa3 flex flex-column absolute z-2000 right-0 top-0 w-20 vh-100"
-          style="background-color: var(--surfaceElements);"
-          onClick=${(e) => { e.stopPropagation(); }}
+          class="pa3 flex flex-column absolute z-2000 right-0 top-0 w-auto vh-100 drac-bg-black drac-border-purple ba1 br-0 bt-0 bb-0 b--solid"
+          onClick=${(e) => {
+            e.stopPropagation();
+          }}
         >
           <div class="flex flex-row w-100 justify-between">
-            <h2>${props.title}</h2>
-            <${Icon} icon="close" onClick=${() => props.closeClicked && props.closeClicked()}/>
+            <h2 class="drac-heading drac-heading-xl drac-text-purple">
+              ${props.title}
+            </h2>
+            <a
+              class="drac-link drac-text drac-text-purple pointer"
+              onClick=${() => props.closeClicked && props.closeClicked()}
+              >X</a
+            >
           </div>
           <div class="mt3 flex flex-column justify-start items-start">
-            <form onSubmit=${(e) => { 
-                e.preventDefault(); 
+            <form
+              onSubmit=${(e) => {
+                e.preventDefault();
                 this.postUser(props);
-              }}>
-              <div class="rux-form-field mb2">
-                <label for="user-email" class="rux-form-field__label">User Email</label>
-                <input id="user-email" type="email" value=${this.state.selectedUser.email} onChange=${(e) => this.setState({ selectedUser : {...this.state.selectedUser, email: e.target.value }})} />
+              }}
+            >
+              <div class="mb2">
+                <label for="user-email" class="drac-text drac-text-white"
+                  >User Email</label
+                >
+                <input
+                  id="user-email"
+                  class="drac-input drac-input-purple drac-text-purple"
+                  autocapitalize="none"
+                  autocorrect="none"
+                  type="email"
+                  placeholder="username"
+                  value=${this.state.selectedUser.email}
+                  onChange=${(e) =>
+                    this.setState({
+                      selectedUser: {
+                        ...this.state.selectedUser,
+                        email: e.target.value,
+                      },
+                    })}
+                />
               </div>
-              <div class="rux-form-field mb2">
-                <label for="user-password" class="rux-form-field__label">User Password</label>
-                <input id="user-password" type="password" value=${this.state.selectedUser.password} onChange=${(e) => this.setState({ selectedUser : { ...this.state.selectedUser, password: e.target.value }})} />
+              <div class="mb2">
+                <label for="user-password" class="drac-text drac-text-white"
+                  >User Password</label
+                >
+                <input
+                  id="user-password"
+                  class="drac-input drac-input-purple drac-text-purple"
+                  type="password"
+                  value=${this.state.selectedUser.password}
+                  onChange=${(e) =>
+                    this.setState({
+                      selectedUser: {
+                        ...this.state.selectedUser,
+                        password: e.target.value,
+                      },
+                    })}
+                />
               </div>
-              <div class="rux-form-field mb2">
-                <label for="user-dod_id" class="rux-form-field__label">User DoDID</label>
-                <input id="user-dod_id" value=${this.state.selectedUser.dod_id} onChange=${(e) => this.setState({ selectedUser : { ...this.state.selectedUser, dod_id: e.target.value }})} />
+              <div class="mb2">
+                <label for="user-dod_id" class="drac-text drac-text-white"
+                  >User DoDID</label
+                >
+                <input
+                  id="user-dod_id"
+                  class="drac-input drac-input-purple drac-text-purple"
+                  value=${this.state.selectedUser.dod_id}
+                  onChange=${(e) =>
+                    this.setState({
+                      selectedUser: {
+                        ...this.state.selectedUser,
+                        dod_id: e.target.value,
+                      },
+                    })}
+                />
               </div>
-              <div class="rux-form-field mb2">
-                <${Checkbox} id="user-reset" label="Expire Password?" checked=${this.state.selectedUser.reset_password} onClick=${(checked) => this.setState({ selectedUser : { ...this.state.selectedUser, reset_password: checked }})} />
+              <div class="mb2">
+                <${Checkbox}
+                  name="user-reset"
+                  id="user-reset"
+                  label="Expire Password?"
+                  checked=${this.state.selectedUser.reset_password}
+                  onClick=${(checked) =>
+                    this.setState({
+                      selectedUser: {
+                        ...this.state.selectedUser,
+                        reset_password: checked,
+                      },
+                    })}
+                />
               </div>
-              <div class="rux-form-field mb2">
-                <${Checkbox} id="user-admin" label="Is Admin?" checked=${this.state.selectedUser.is_admin} onClick=${(checked) => this.setState({ selectedUser : { ...this.state.selectedUser, is_admin: checked }})} />
+              <div class="mb2">
+                <${Checkbox}
+                  id="user-admin"
+                  name="user-admin"
+                  label="Admin?"
+                  checked=${this.state.selectedUser.is_admin}
+                  onClick=${(checked) =>
+                    this.setState({
+                      selectedUser: {
+                        ...this.state.selectedUser,
+                        is_admin: checked,
+                      },
+                    })}
+                />
               </div>
-              <button type="submit" disabled=${this.state.isSubmitting} class="rux-button ma2">${this.state.isSubmitting ? 'Sending...' : 'Submit'}</button>
+              <button
+                type="submit"
+                disabled=${this.state.isSubmitting}
+                class="drac-btn drac-bg-purple ma2"
+              >
+                ${this.state.isSubmitting ? "Sending..." : "Submit"}
+              </button>
             </form>
-            <span>${this.state.resultMessage}</span>
+            <span class="drac-text drac-text-cyan"
+              >${this.state.resultMessage}</span
+            >
           </div>
         </div>
       </div>

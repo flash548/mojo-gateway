@@ -11,21 +11,18 @@ export class TabPanel extends Component {
   render() {
     return html`
       <div class="flex w-100 justify-start items-start flex-column">
-        <h1>${this.state.title}</h1>
+        <h1 class="drac-heading drac-heading-2xl drac-text-purple">${this.state.title}</h1>
         <div
-          class="ml4 flex w-100 justify-start rux-tabs"
+          class="ml4 flex w-100 justify-start"
           style=${{ height: "auto" }}
         >
-          <ul>
+          <ul class="drac-tabs drac-tabs-purple">
             ${this.state.tabs.map(
               (tab, index) =>
                 html`<li
-                  class="rux-tab"
-                  style=${index === this.state.activeIndex
-                    ? "border-bottom: 5px solid var(--primary);"
-                    : ""}
+                  class=${`drac-tab ${index === this.state.activeIndex ? "drac-tab-active" : ""}`}
                 >
-                  <a onClick=${() => this.setState({ activeIndex: index })}
+                  <a class="drac-tab-link drac-text pointer" onClick=${() => this.setState({ activeIndex: index })}
                     >${tab.title}</a
                   >
                 </li>`
