@@ -67,7 +67,9 @@ sub startup ($self) {
 
   # add any config-file-defined proxy routes that do not require authentication
   for my $route_spec (keys %{$config->{routes}}) {
-    next if !defined($config->{routes}->{$route_spec}->{requires_login}) || $config->{routes}->{$route_spec}->{requires_login};
+    next
+      if !defined($config->{routes}->{$route_spec}->{requires_login})
+      || $config->{routes}->{$route_spec}->{requires_login};
     $self->routes->any(
       $route_spec => sub ($c) {
         $self->proxy_service->proxy($c, $route_spec);
@@ -75,18 +77,39 @@ sub startup ($self) {
     );
   }
 
+  # __IF__ our default route in the config specifies that it does NOT require
+  # login then add that here and now, otherwise it'll be later on in the auth'd routes
+  # below
+  if (!$config->{default_route}->{requires_login}) {
+    $self->routes->add_condition(
+      check_no_admin => sub ($route, $c, $captures, $opts) {
+        return undef if $c->req->url->path =~ m!^/admin!i; # don't allow admin to be aliased over by the catch-all route
+
+        return 1;
+      }
+    );
+    $self->routes->any('/**')->requires(check_no_admin => {})->to(
+      cb => sub ($c) {
+        $self->proxy_service->proxy($c, 'default_route');
+      }
+    );
+  }
+
+
   # all routes from here-on require authentication
   my $authorized_routes = $self->routes->under('/' => sub ($c) { $self->user_service->check_user_status($c) });
 
   # the routes under '/admin/**' requires admin-blessed, authenticated users
-  my $admin_routes = $authorized_routes->under('/admin' => sub ($c) { 
-    if (!$self->user_service->check_user_admin($c)) {
-      $c->rendered(Constants::HTTP_FORBIDDEN);
-      return;
-    }
+  my $admin_routes = $authorized_routes->under(
+    '/admin' => sub ($c) {
+      if (!$self->user_service->check_user_admin($c)) {
+        $c->rendered(Constants::HTTP_FORBIDDEN);
+        return;
+      }
 
-    return 1;
-  });
+      return 1;
+    }
+  );
   $admin_routes->get('/' => sub ($c) { $self->admin_controller->admin_page_get($c) });
   $admin_routes->post('/users' => sub ($c) { $self->admin_controller->add_user_post($c) });
   $admin_routes->put('/users' => sub ($c) { $self->admin_controller->update_user_put($c) });
@@ -100,7 +123,9 @@ sub startup ($self) {
 
   # add any config-file-defined proxy routes requiring authentication
   for my $route_spec (keys %{$config->{routes}}) {
-    next if defined($config->{routes}->{$route_spec}->{requires_login}) && !$config->{routes}->{$route_spec}->{requires_login};
+    next
+      if defined($config->{routes}->{$route_spec}->{requires_login})
+      && !$config->{routes}->{$route_spec}->{requires_login};
     $authorized_routes->any(
       $route_spec => sub ($c) {
         $self->proxy_service->proxy($c, $route_spec);
@@ -108,17 +133,20 @@ sub startup ($self) {
     );
   }
 
-  # catch-all/default routes - routes to the default_routes specified in the config json
-  $authorized_routes->any(
-    '/**' => sub ($c) {
-      $self->proxy_service->proxy($c, 'default_route');
-    }
-  );
-  $authorized_routes->any(
-    '*' => sub ($c) {
-      $self->proxy_service->proxy($c, 'default_route');
-    }
-  );
+  if ($config->{default_route}->{requires_login}) {
+
+    # catch-all/default routes - routes to the default_routes specified in the config json
+    $authorized_routes->any(
+      '/**' => sub ($c) {
+        $self->proxy_service->proxy($c, 'default_route');
+      }
+    );
+    $authorized_routes->any(
+      '*' => sub ($c) {
+        $self->proxy_service->proxy($c, 'default_route');
+      }
+    );
+  }
 }
 
 1;
