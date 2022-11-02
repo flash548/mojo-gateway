@@ -5,7 +5,7 @@ export class UserTable extends Component {
 
 
   render(props) {
-    return html` <table class="rux-table">
+    return html`<div class="pa2"> <table class="rux-table">
       <tr>
         <th>Email</th>
         <th class="tc">Admin?</th>
@@ -29,8 +29,8 @@ export class UserTable extends Component {
                 <${Status} status=${user.reset_password ? 'standby' : 'off' } />
               </span>
             </td>
-            <td>${user.last_reset}</td>
-            <td>${user.last_login}</td>
+            <td>${user.last_reset ? new Date(user.last_reset + 'Z').toLocaleString() : 'Never'}</td>
+            <td>${user.last_login ? new Date(user.last_login + 'Z').toLocaleString() : 'Never'}</td>
             <td>
               <${Icon} icon="edit" onClick=${() => props.rowClicked({...user})} />
             </td>
@@ -40,6 +40,6 @@ export class UserTable extends Component {
           </tr>
         `
       )}
-    </table>`;
+    </table></div>`;
   }
 }

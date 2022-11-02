@@ -17,18 +17,20 @@ export class EditPanel extends Component {
 
   async postUser(props) {
     this.setState({ ...this.state, isSubmitting: true });
+
     let result = await fetch('/admin/users', {
       method: this.isEdit ? 'PUT' : 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ ...this.state.selectedUser })
     });
-
-    if (result.status === 201 || result.status === 200) {
-      let body = await result.json();
+    let body = await result.json();
+    if (result.status === 201 || result.status === 200) {      
       this.isEdit ? props.onEditUser(body) : props.onAddUser(body);
       this.setState({ isSubmitting: false, resultMessage: 'Success!'});
+      showToast(this.isEdit ? "User Updated" : "User Created", true);
     } else {
       this.setState({ isSubmitting: false, resultMessage: 'Failed!'});
+      showToast(body.message);
     }
   }
 

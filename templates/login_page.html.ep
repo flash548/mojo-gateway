@@ -12,7 +12,7 @@ if (my $flash = flash 'info') {
     }
 }
 %>
-
+<!DOCTYPE html>
 <html>
   <head>
     <title><%= app->config->{login_page_title} %></title>
@@ -51,7 +51,7 @@ if (my $flash = flash 'info') {
                 autocapitalize="none"
                 autocorrect="none"
                 type="text"
-                placeholder="username"
+                placeholder="email"
                 value="<%= stash 'user' %>"
               />
             </div>

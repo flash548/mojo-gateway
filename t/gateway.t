@@ -21,10 +21,11 @@ my $t = Test::Mojo->new(
     secret     => 'secret',
     jwt_secret => 'secret',
     routes     => {
-      '/'    => {uri => "http://localhost:8080/frontend", enable_jwt => 1},
-      '/api' => {uri => "http://localhost:8080/api",      enable_jwt => 1}
+      '/'    => {uri => "http://localhost:8080/frontend", enable_jwt => 1, requires_login => 1},
+      '/everyone' => { requires_login => 0, uri => "http://localhost:8080/everyone" },
+      '/api' => {uri => "http://localhost:8080/api",      enable_jwt => 1, requires_login => 1}
     },
-    default_route       => {uri => 'https://localhost:8080/frontend',},
+    default_route       => {uri => 'https://localhost:8080/frontend', requires_login => 1},
     password_valid_days => 60,
     password_complexity => {min_length => 8, alphas => 1, numbers => 1, specials => 1, spaces => 0}
   }
@@ -220,6 +221,19 @@ subtest 'Test user account updates cannot modify read-only fields' => sub {
   $t->post_ok('/auth/login', form => {username => 'admin@test.com', password => 'testpass'})
     ->status_is(Constants::HTTP_OK)
     ->content_unlike(qr/login/i, 'Login as user');
+  $t->get_ok('/logout')->status_is(Constants::HTTP_OK);
+};
+
+subtest 'Test that routes not requiring authentication work without logging in' => sub {
+
+  # make sure we're logged out to prevent false positives
+  $t->get_ok('/logout')->status_is(Constants::HTTP_OK);
+
+
+  $t->get_ok('/everyone')->status_is(Constants::HTTP_OK)
+    ->content_like(qr/Whoa/, 'Can go right to the public routes');
+  $t->get_ok('/api')->status_is(Constants::HTTP_OK)
+    ->content_unlike(qr/Whoa/, 'Protected routes are still protected');
 };
 
 done_testing();

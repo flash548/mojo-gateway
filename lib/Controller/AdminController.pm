@@ -7,8 +7,9 @@ use Mojo::Base 'Mojolicious::Controller', -signatures;
 
 has 'user_service';
 
+# serve the admin SPA
 sub admin_page_get ($self, $c) {
-  $c->render('admin');
+  $c->render('admin', email => $c->session->{user}->{email} // 'Unknown');
 }
 
 sub add_user_post ($self, $c) {

@@ -42,7 +42,7 @@ my $config = {
       jwt_claims => {email => '$c->session->{user}->{email}'},
     },
   },
-  default_route       => {uri => "http://localhost:3000/frontend", enable_jwt => 0,},
+  default_route       => {uri => "http://localhost:3000/frontend", enable_jwt => 0 },
   password_valid_days => 60,
   password_complexity => {min_length => 8, alphas => 1, numbers => 1, specials => 1, spaces => 0}
 };
