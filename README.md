@@ -177,6 +177,14 @@ Run the test suite from the root of the project with: `prove -lr t/`
 Make sure you dont have a server running locally that might interfere with port 8080 etc - as some of the tests actually standup a running instance of the service.
 
 
-## Design System/Theme Credits
+## Design System/Theme
 
 This service's pages are rendered using the Astro UXDS from Rocket Communications.  It uses an older css file sans the web components.  You should check their Github out [here](https://github.com/RocketCommunicationsInc) and their [website](https://www.astrouxds.com/)!
+
+## Credits
+
+- Mojolicious Framework (https://github.com/mojolicious/mojo) and various other CPAN libraries
+- Astro UXDS from RocketCommunicationsInc (https://github.com/RocketCommunicationsInc)
+- Preact.js (https://github.com/preactjs/preact)
+- toastify-js (https://github.com/apvarun/toastify-js)
+- htm (https://github.com/developit/htm)
