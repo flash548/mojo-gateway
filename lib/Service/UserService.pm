@@ -15,7 +15,7 @@ sub create_admin_user ($self) {
     users => {
       email    => lc $self->config->{admin_user},
       password => $self->password_util->encode_password($self->config->{admin_pass}),
-      dod_id   => 123456789,
+      user_id   => 123456789,
       is_admin => 1
     }
   ) unless defined($self->db->select('users', undef, {email => $self->config->{admin_user}})->hash);
@@ -118,7 +118,7 @@ sub _user_exists ($self, $username) {
 
 sub get_all_users ($self, $c) {
   my $users
-    = $self->db->select('users', ['email', 'reset_password', 'dod_id', 'last_reset', 'last_login', 'is_admin'])->hashes;
+    = $self->db->select('users', ['email', 'reset_password', 'user_id', 'last_reset', 'last_login', 'is_admin'])->hashes;
   $c->render(json => $users);
 }
 
@@ -142,7 +142,8 @@ sub add_user ($self, $c) {
     $user->{password} = $self->password_util->encode_password($user->{password});
     $self->db->insert(users => $c->req->json);
     $user = $self->_get_user($c->req->json->{email});
-    delete $user->{password};
+
+    delete $user->{password};  # dont ever return the password
     $c->render(status => Constants::HTTP_CREATED, json => $user);
   }
 }
@@ -155,7 +156,7 @@ sub update_user ($self, $c) {
     my $existing_user = $self->_get_user(lc($c->req->json->{email}));
 
     # now go through the keys of the payload and update the existing_user record
-    # if new field wasn't undefined - that way we dont always have to provide password
+    # if new field wasn't undefined - that way we dont always have to provide password updates if we're not changing it
     # if we have to go in an manually expire someone's account
     my $user = $c->req->json;
     for my $key (keys %{$user}) {
@@ -176,6 +177,8 @@ sub update_user ($self, $c) {
 
     $self->db->update('users', $existing_user, {email => lc($existing_user->{email})});
     my $updated_user = $self->_get_user(lc($existing_user->{email}));
+
+    # dont ever return the password
     delete $updated_user->{password};
 
     $c->render(status => Constants::HTTP_OK, json => $updated_user);

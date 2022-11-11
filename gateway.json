@@ -31,7 +31,7 @@
       "requires_login": true,
       "jwt_claims": {
         "email": "$c->session->{user}->{email}",
-        "usercertificate": "\"Tron.Developer.\" . $c->session->{user}->{dod_id}"
+        "usercertificate": "\"Tron.Developer.\" . $c->session->{user}->{user_id}"
       },
       "other_headers": {
         "x-forwarded-client-cert": "some other header data"

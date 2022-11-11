@@ -1,17 +1,3 @@
-<!-- prettier-ignore -->
-<%
-my %info = (
-    logout       => 'You have been logged out',
-    user_created => 'User created. Please log in',
-);
-my $flash_info;
-if (my $flash = flash 'info') {
-    $flash_info = $info{ $flash };
-    if (!$flash_info) {
-        app->log->error('Unknown login message: ' . $flash);
-    }
-}
-%>
 <!DOCTYPE html>
 <html>
   <head>
@@ -24,7 +10,7 @@ if (my $flash = flash 'info') {
 
   <body class="dark-theme">
     <div class="vh-100 w-100 flex flex-column justify-center items-center">
-      <div class="pt4 ph4 br2" style="background-color: var(--surfaceElements)">
+      <div class="pv4 ph4 br2" style="background-color: var(--surfaceElements)">
         <div class="mb4">
           <h2><%= app->config->{login_page_title} %></h2>
         </div>
@@ -33,9 +19,7 @@ if (my $flash = flash 'info') {
           <div style="color: var(--statusDarkSerious)">
             Login failed: User or password incorrect!
           </div>
-          <%} %> <% if ($flash_info) { %>
-          <div style="color: var(--statusDarkSerious)"><%= $flash_info %></div>
-          <% } %>
+          <%} %>
           <form action="/auth/login" method="POST">
             <input
               type="hidden"

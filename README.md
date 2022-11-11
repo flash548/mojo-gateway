@@ -49,7 +49,7 @@ Example configuration file that uses a Postgres database:
       "enable_jwt": true,
       "jwt_claims": {
         "email": "$c->session->{user}->{email}",
-        "usercertificate": "\"Developer.\" . $c->session->{user}->{dod_id}"
+        "usercertificate": "\"Developer.\" . $c->session->{user}->{user_id}"
       },
       "other_headers": {
         "x-forwarded-client-cert": "some other header data"

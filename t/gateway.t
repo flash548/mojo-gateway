@@ -74,7 +74,7 @@ subtest 'Test User Login/Logout/Admin operations' => sub {
   $t->post_ok('/admin/users',
     json => {email => 'test@test.com', password => 'password', reset_password => 1, is_admin => 0,})
     ->status_is(Constants::HTTP_CREATED)
-    ->json_has('/email')->json_has('/dod_id')->json_has('/is_admin')->json_has('/reset_password')
+    ->json_has('/email')->json_has('/user_id')->json_has('/is_admin')->json_has('/reset_password')
     ->json_has('/last_reset')->json_has('/last_login')->json_hasnt('/password');
 
 
@@ -152,10 +152,10 @@ subtest 'Test User Login/Logout/Admin operations' => sub {
     ->status_is(Constants::HTTP_OK)
     ->content_like(qr/Admin/, 'Make sure we are not at the login page anymore');
 
-  $t->put_ok('/admin/users', json => {email => 'test@test.com', dod_id => '222222'})
+  $t->put_ok('/admin/users', json => {email => 'test@test.com', user_id => '222222'})
     ->status_is(Constants::HTTP_OK)
     ->json_is('/email' => 'test@test.com')
-    ->json_is('/dod_id' => 222222)
+    ->json_is('/user_id' => 222222)
     ->json_is('/is_admin' => 0)
     ->json_is('/reset_password' => 0)
     ->json_unlike('/last_reset' => qr/2022-01-01T00:00:00Z/)
