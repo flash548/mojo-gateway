@@ -14,6 +14,7 @@ sub login_page_get ($self, $c) {
 
 sub logout_get ($self, $c) {
   $c->session(expires => 1);
+  $c->flash({ return_to => '/'});
   $c->redirect_to('/login');
 }
 

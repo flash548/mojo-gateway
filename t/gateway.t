@@ -97,6 +97,12 @@ subtest 'Test User Login/Logout/Admin operations' => sub {
     ->element_exists('[name=retyped-new-password]')
     ->content_like(qr/Change/i, 'Log Back In - Get Force password change screen');
 
+  # change password - provide missing/blank field - fails with error
+  $t->post_ok('/auth/password/change',
+    form => {'current-password' => 'blah', 'new-password' => 'blah2',})
+    ->status_is(Constants::HTTP_OK)
+    ->content_like(qr/Password Change Failed: Required fields not/, 'Missing re-typed field');
+
   # change password - provide bad existing one - fails with error
   $t->post_ok('/auth/password/change',
     form => {'current-password' => 'blah', 'new-password' => 'blah2', 'retyped-new-password' => 'blah2'})
@@ -152,13 +158,14 @@ subtest 'Test User Login/Logout/Admin operations' => sub {
     ->status_is(Constants::HTTP_OK)
     ->content_like(qr/Admin/, 'Make sure we are not at the login page anymore');
 
-  $t->put_ok('/admin/users', json => {email => 'test@test.com', user_id => '222222'})
+  $t->put_ok('/admin/users', json => {email => 'test@test.com', user_id => '222222', callsign => 'japh'})
     ->status_is(Constants::HTTP_OK)
     ->json_is('/email' => 'test@test.com')
     ->json_is('/user_id' => 222222)
     ->json_is('/is_admin' => 0)
     ->json_is('/reset_password' => 0)
     ->json_unlike('/last_reset' => qr/2022-01-01T00:00:00Z/)
+    ->json_hasnt('/callsign')
     ->json_hasnt('/password');
 
   # expire it manually
@@ -224,6 +231,20 @@ subtest 'Test user account updates cannot modify read-only fields' => sub {
   $t->get_ok('/logout')->status_is(Constants::HTTP_OK);
 };
 
+subtest 'Test Extra Fields cannot be added to user objects' => sub {
+  $t->post_ok('/auth/login', form => {username => 'admin@test.com', password => 'testpass'})
+    ->status_is(Constants::HTTP_OK)
+    ->content_unlike(qr/login/i, 'Login as admin user');
+
+  # try to add a user with extra fields
+  $t->post_ok('/admin/users',
+    json => {email => 'dude@test.com', password => 'dude2!', reset_password => 1, is_admin => 0, other_field => 'hacker'})
+    ->status_is(Constants::HTTP_CREATED)
+    ->json_hasnt('/other_field');
+
+  $t->get_ok('/logout')->status_is(Constants::HTTP_OK);
+};
+
 subtest 'Test that routes not requiring authentication work without logging in' => sub {
 
   # make sure we're logged out to prevent false positives
@@ -232,8 +253,39 @@ subtest 'Test that routes not requiring authentication work without logging in' 
 
   $t->get_ok('/everyone')->status_is(Constants::HTTP_OK)
     ->content_like(qr/Whoa/, 'Can go right to the public routes');
+
+  # should get the login page
   $t->get_ok('/api')->status_is(Constants::HTTP_OK)
     ->content_unlike(qr/Whoa/, 'Protected routes are still protected');
+};
+
+subtest 'Test that other users cant change other users passwords' => sub {
+
+  $t->post_ok('/auth/login', form => {username => 'admin@test.com', password => 'testpass'})
+    ->status_is(Constants::HTTP_OK)
+    ->content_unlike(qr/login/i, 'Login as admin user');
+
+  # add non-admin-user
+  $t->post_ok('/admin/users',
+    json => {email => 'dude2@test.com', password => 'dude2!', reset_password => 0, is_admin => 0 })
+    ->status_is(Constants::HTTP_CREATED);
+
+  # add non-admin-user
+  $t->post_ok('/admin/users',
+    json => {email => 'dude3@test.com', password => 'dude3!', reset_password => 0, is_admin => 0 })
+    ->status_is(Constants::HTTP_CREATED);
+
+  # logout admin
+  $t->get_ok('/logout')->status_is(Constants::HTTP_OK);
+
+  # login as a non-admin
+  $t->post_ok('/auth/login', form => {username => 'dude2@test.com', password => 'dude2!'})
+    ->status_is(Constants::HTTP_OK)
+    ->content_like(qr/Whoa/, 'Non-admin logged in');
+
+  # test gets 403 when doing it via API
+  $t->put_ok('/admin/users', json => {email => 'admin@test.com', password => 'hacked' })
+    ->status_is(Constants::HTTP_FORBIDDEN);
 };
 
 done_testing();

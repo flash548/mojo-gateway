@@ -1,5 +1,11 @@
 ## Mojo::Gateway
 
+### DockerHub
+
+This project is hosted on Dockerhub as a Docker Image.  [flash548/mojo-gateway](https://dockerhub.com/flash548/mojo-gateway)
+
+### About
+
 `
 🚨 Note: This project is in active development/rapidly changing, thus not yet intended for any production usage.  New features are being added and at the same time existing ones may be getting removed or changed.  So usage at this point is at your own risk! If you want a "stable-ish" snapshot pull from the tags until v1.0.
 `
@@ -88,18 +94,26 @@ services:
     # some api microservice....
     backend:
         image: some-registry/image:latest
+        ports:
+          - "8080:8080"
         depends_on:
             - postgres
   
     # build docker image from this repo's dockerfile
     # here post-wise, assumed requests come in as HTTP (having HTTPS terminated elsewhere...)
     proxy:
-        build: https://github.com/flash548/mojo-gateway.git#main
+        image: flash548/mojo-gateway:latest
         ports:
             - "8080:3000"
+        volumes:
+            - "./private.json:/opt/mojo-gateway/private.json"
+            - "./templates:/opt/mojo-gateway/custom/templates"
+            - "./public:/opt/mojo-gateway/custom/public"
         environment:
             - ADMIN_USER='admin@example.com'
             - ADMIN_PASS=password
+            - SECRET=some-secret
+            - BACKEND_URI=http://backend:8080
 
             # override the default config with whatever here
             - MOJO_CONFIG=private.json
@@ -146,7 +160,7 @@ fetch API to interact with the API.
 Within the admin interface you can:
 
 - ✅ Add user accounts
-- ✅ Delete user accounts (WIP)
+- ✅ Delete user accounts
 - ✅ Update user accounts (change, expire passwords, change names, etc)
 - View traffic stats (route usage, status, etc) (WIP)
 

@@ -7,7 +7,8 @@ use Constants;
 
 has 'db';
 has 'config';
-has 'password_util' => sub { Password::Utils->new };
+has 'password_util'           => sub { Password::Utils->new };
+has 'user_obj_allowed_fields' => sub { ['reset_password', 'first_name', 'last_name', 'is_admin', 'user_id'] };
 
 # creates a default admin user if it doesnt exist
 sub create_admin_user ($self) {
@@ -15,7 +16,7 @@ sub create_admin_user ($self) {
     users => {
       email    => lc $self->config->{admin_user},
       password => $self->password_util->encode_password($self->config->{admin_pass}),
-      user_id   => 123456789,
+      user_id  => 123456789,
       is_admin => 1
     }
   ) unless defined($self->db->select('users', undef, {email => $self->config->{admin_user}})->hash);
@@ -37,16 +38,16 @@ sub check_user_status ($self, $c) {
     return undef;
   }
 
-  # if user record shows we need to reset-password, and we're not already at the password path,
-  #  then re-direct to that page
+# if user record shows we need to reset-password, and we're not already at the password path,
+#  then re-direct to that page
   if ($c->session->{user}->{reset_password} && $c->req->url !~ /auth\/password\/change/) {
     $c->flash({return_to => $c->req->url});
     $c->redirect_to('/auth/password/change');
     return undef;
   }
 
-  # user authenticated OK or already-authenticated, check password expiry if we've defined
-  #  that setting and its more than 0 days
+# user authenticated OK or already-authenticated, check password expiry if we've defined
+#  that setting and its more than 0 days
   if (
     (
       $c->session->{user}->{reset_password}
@@ -61,9 +62,9 @@ sub check_user_status ($self, $c) {
       return undef;
     }
 
-    # ok didnt blatantly say we need to change the password, so
-    # if last_reset is undef, then set it to now, not sure how'd that be though, should default to current date time
-    # otherwise check the age of the password
+# ok didnt blatantly say we need to change the password, so
+# if last_reset is undef, then set it to now, not sure how'd that be though, should default to current date time
+# otherwise check the age of the password
     if (!defined($c->session->{user}->{last_reset})) {
       $self->db->update("users", {last_reset => get_gmstamp()}, {email => lc $c->session->{user}->{email}});
     } else {
@@ -83,6 +84,11 @@ sub check_user_status ($self, $c) {
 }
 
 sub do_login ($self, $c) {
+
+  if (!$c->req->param('username') || !$c->req->param('password')) {
+    $c->render(json => {message => 'Username and password fields are required'}, status => Constants::HTTP_BAD_REQUEST);
+  }
+
   my $username = lc $c->req->param('username');
   my $password = $c->req->param('password');
 
@@ -117,8 +123,8 @@ sub _user_exists ($self, $username) {
 }
 
 sub get_all_users ($self, $c) {
-  my $users
-    = $self->db->select('users', ['email', 'reset_password', 'user_id', 'last_reset', 'last_login', 'is_admin'])->hashes;
+  my $users = $self->db->select('users', ['email', 'reset_password', 'user_id', 'last_reset', 'last_login', 'is_admin'])
+    ->hashes;
   $c->render(json => $users);
 }
 
@@ -134,26 +140,43 @@ sub check_user_admin ($self, $c) {
 
 # adds a new user
 sub add_user ($self, $c) {
+
   if ($self->db->select('users', undef, {email => lc $c->req->json->{email}})->hashes->size > 0) {
     $c->render(status => Constants::HTTP_CONFLICT, json => {message => 'User exists'});
   } else {
-    my $user = $c->req->json;
-    $user->{email}    = lc $user->{email};
-    $user->{password} = $self->password_util->encode_password($user->{password});
-    $self->db->insert(users => $c->req->json);
-    $user = $self->_get_user($c->req->json->{email});
+    my $user = {};
+    if (!$c->req->json->{email} || !$c->req->json->{password}) {
+      $c->render(json => {message => 'Email and Password required minimum'}, status => Constants::HTTP_BAD_REQUEST);
+      return;
+    }
+    $user->{email}    = lc $c->req->json->{email};
+    $user->{password} = $self->password_util->encode_password($c->req->json->{password});
 
-    delete $user->{password};  # dont ever return the password
-    $c->render(status => Constants::HTTP_CREATED, json => $user);
+    # copy over rest of "allowed" fields
+    for my $field (@{$self->user_obj_allowed_fields}) {
+      if (defined($c->req->json->{$field})) {
+        $user->{$field} = $c->req->json->{$field};
+      }
+    }
+
+    $self->db->insert(users => $user);
+    my $new_user = $self->_get_user($c->req->json->{email});
+
+    delete $new_user->{password};    # dont ever return the password
+    $c->render(status => Constants::HTTP_CREATED, json => $new_user);
   }
 }
 
 # updates user
 sub update_user ($self, $c) {
+  if (!$c->req->json->{email}) {
+    $c->render(json => {message => 'Email required minimum'}, status => Constants::HTTP_BAD_REQUEST);
+    return;
+  }
+
   if ($self->db->select('users', undef, {email => lc $c->req->json->{email}})->hashes->size) {
 
-    my @disallowed_fields = ( 'last_reset', 'last_login' );
-    my $existing_user = $self->_get_user(lc($c->req->json->{email}));
+    my $existing_user     = $self->_get_user(lc($c->req->json->{email}));
 
     # now go through the keys of the payload and update the existing_user record
     # if new field wasn't undefined - that way we dont always have to provide password updates if we're not changing it
@@ -162,14 +185,13 @@ sub update_user ($self, $c) {
     for my $key (keys %{$user}) {
       if (defined($user->{$key})) {
 
-        # skip disallowed fields (read-only)
-        next if grep { $_ =~ /$key/ } @disallowed_fields;
-
         # check if its a password field
-        if ($key eq 'password') {
-          $existing_user->{password} = $self->password_util->encode_password($user->{password});
+        if ($key eq 'password' && defined($user->{password}) && $user->{password} ne '') {
+          $existing_user->{password}   = $self->password_util->encode_password($user->{password});          
           $existing_user->{last_reset} = $self->get_gmstamp();
-        } else {
+        } elsif (grep { $key =~ m/$_/} @{$self->user_obj_allowed_fields}) {
+          # if its an allowed field for the body model, then add it to the existing_user obj
+          # we're about to persist...
           $existing_user->{$key} = $user->{$key};
         }
       }
@@ -188,14 +210,22 @@ sub update_user ($self, $c) {
 }
 
 sub do_password_change ($self, $c) {
+
+  if (!$c->req->param('current-password') || !$c->req->param('new-password') || !$c->req->param('retyped-new-password'))
+  {
+    $c->flash({return_to => $c->flash('return_to'), error_msg => 'Required fields not present or they were blank'});
+    $c->redirect_to('/auth/password/change',);
+    return;
+  }
+
   my $existing_password = $c->req->param('current-password');
   my $new_password      = $c->req->param('new-password');
   my $retyped_password  = $c->req->param('retyped-new-password');
 
   # see if the existing password was correct
   if ( !$existing_password
-    || !$self->password_util->check_pass($self->_get_user($c->session->{user}->{email})->{password}, $existing_password))
-  {
+    || !$self->password_util->check_pass($self->_get_user($c->session->{user}->{email})->{password}, $existing_password)
+  ) {
     $c->flash({return_to => $c->flash('return_to'), error_msg => 'Existing Password Incorrect'});
     $c->redirect_to('/auth/password/change',);
   }
@@ -218,7 +248,7 @@ sub do_password_change ($self, $c) {
     $c->redirect_to('/auth/password/change',);
   }
 
-  # if we make it here, then change the password in the database, and update the user's session
+# if we make it here, then change the password in the database, and update the user's session
   else {
 
     $self->db->update(
@@ -262,7 +292,7 @@ sub delete_single_user ($self, $c) {
     return;
   }
 
-  $self->db->delete('users', { email => $username });
+  $self->db->delete('users', {email => $username});
 }
 
 1;

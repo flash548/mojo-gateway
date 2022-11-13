@@ -20,9 +20,10 @@ sub startup ($self) {
   $self->secrets([$config->{secret}]);
   $self->sessions->cookie_name($config->{cookie_name} // 'mojolicious');
 
-  # remove any headers we never want going back to the client
   $self->hook(
     after_dispatch => sub ($c) {
+
+      # remove any headers we never want going back to the client
       if ($config->{strip_headers_to_client}) {
         $c->res->headers->remove(lc $_) for (@{$config->{strip_headers_to_client}});
       }
