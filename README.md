@@ -2,7 +2,7 @@
 
 ### DockerHub
 
-This project is hosted on Dockerhub as a Docker Image.  [flash548/mojo-gateway]([https://hub.docker.com/flash548/mojo-gateway](https://hub.docker.com/r/flash548/mojo-gateway)
+This project is hosted on Dockerhub as a Docker Image.  [flash548/mojo-gateway](https://hub.docker.com/r/flash548/mojo-gateway)
 
 ### About
 
