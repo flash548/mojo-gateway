@@ -2,7 +2,7 @@
 
 ### DockerHub
 
-This project is hosted on Dockerhub as a Docker Image.  [flash548/mojo-gateway](https://dockerhub.com/flash548/mojo-gateway)
+This project is hosted on Dockerhub as a Docker Image.  [flash548/mojo-gateway](https://hub.docker.com/r/flash548/mojo-gateway)
 
 ### About
 
@@ -202,3 +202,4 @@ This service's pages are rendered using the Astro UXDS from Rocket Communication
 - Preact.js (https://github.com/preactjs/preact)
 - toastify-js (https://github.com/apvarun/toastify-js)
 - htm (https://github.com/developit/htm)
+- Tachyons CSS (https://tachyons.io/)
