@@ -9,4 +9,6 @@ docker-compose.yml
 .docker/
 *.crt
 *.key
-private.json
+*.json
+.DS_Store
+!gateway.json
