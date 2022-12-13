@@ -1,45 +1,110 @@
 export class UserTable extends Component {
   constructor(props) {
     super(props);
+    this.state = {
+      sortColumn: "email",
+      sortDirection: "asc",
+      searchEmail: "",
+    };
   }
 
+  sortList = (list) => {
+    list.sort((a, b) => {
+      if (this.state.sortDirection === "asc") {
+        return a[this.state.sortColumn] > b[this.state.sortColumn] ? 1 : -1;
+      } else {
+        return a[this.state.sortColumn] > b[this.state.sortColumn] ? -1 : 1;
+      }
+    });
+
+    return list;
+  };
 
   render(props) {
-    return html`<div class="pa2"> <table class="rux-table">
-      <tr>
-        <th>Email</th>
-        <th class="tc">Admin?</th>
-        <th class="tc">Password Reset?</th>
-        <th>Last Reset</th>
-        <th>Last Login</th>
-        <th></th>
-        <th></th>
-      </tr>
-      ${props.users.map(
-        (user) => html`
-          <tr>
-            <td>${user.email}</td>
-            <td>
-              <span class="w-100 flex justify-center">
-                <${Status} status=${user.is_admin ? 'normal' : 'off' } />
-              </span>
-            </td>
-            <td>
-              <span class="w-100 flex justify-center">
-                <${Status} status=${user.reset_password ? 'standby' : 'off' } />
-              </span>
-            </td>
-            <td>${user.last_reset ? new Date(user.last_reset + 'Z').toLocaleString() : 'Never'}</td>
-            <td>${user.last_login ? new Date(user.last_login + 'Z').toLocaleString() : 'Never'}</td>
-            <td>
-              <${Icon} icon="edit" onClick=${() => props.rowClicked({...user})} />
-            </td>
-            <td>
-              <${Icon} icon="delete" onClick=${() => props.rowDelete({...user})} />
-            </td>
-          </tr>
-        `
-      )}
-    </table></div>`;
+    return html`<div class="pa2">
+      <div class=" flex justify-center mb4">
+        <div class="rux-form-field w-50">
+          <input
+            id="user-search"
+            type="search"
+            placeholder="Search Email" 
+            value=${this.state.searchEmail}
+            class="rux-input"
+            style=${{
+              color: "var(--defaultText) ",
+              backgroundColor: "var(--tableHeaderBackgroundColor) ",
+            }}
+            onInput=${(e) => {
+              console.log(e.target.value);
+              this.setState({ searchEmail: e.target.value });
+            }}
+          />
+        </div>
+      </div>
+      <table class="rux-table">
+        <tr>
+          <th class="flex items-center">
+            Email${" "}${this.state.sortDirection === "asc"
+              ? html`<${Icon}
+                  icon="arrow-upward"
+                  onClick=${() => this.setState({ sortDirection: "desc" })}
+                />`
+              : html`<${Icon}
+                  icon="arrow-downward"
+                  onClick=${() => this.setState({ sortDirection: "asc" })}
+                />`}
+          </th>
+          <th class="tc">Admin?</th>
+          <th class="tc">Password Reset?</th>
+          <th>Last Reset</th>
+          <th>Last Login</th>
+          <th></th>
+          <th></th>
+        </tr>
+        ${this.sortList(props.users)
+          .filter((user) => user.email.includes(this.state.searchEmail))
+          .map(
+            (user) => html`
+              <tr>
+                <td>${user.email}</td>
+                <td>
+                  <span class="w-100 flex justify-center">
+                    <${Status} status=${user.is_admin ? "normal" : "off"} />
+                  </span>
+                </td>
+                <td>
+                  <span class="w-100 flex justify-center">
+                    <${Status}
+                      status=${user.reset_password ? "standby" : "off"}
+                    />
+                  </span>
+                </td>
+                <td>
+                  ${user.last_reset
+                    ? new Date(user.last_reset + "Z").toLocaleString()
+                    : "Never"}
+                </td>
+                <td>
+                  ${user.last_login
+                    ? new Date(user.last_login + "Z").toLocaleString()
+                    : "Never"}
+                </td>
+                <td>
+                  <${Icon}
+                    icon="edit"
+                    onClick=${() => props.rowClicked({ ...user })}
+                  />
+                </td>
+                <td>
+                  <${Icon}
+                    icon="delete"
+                    onClick=${() => props.rowDelete({ ...user })}
+                  />
+                </td>
+              </tr>
+            `
+          )}
+      </table>
+    </div>`;
   }
 }

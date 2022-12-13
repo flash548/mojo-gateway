@@ -63,23 +63,23 @@ export class EditPanel extends Component {
               }}>
               <div class="rux-form-field mb2">
                 <label for="user-first_name" class="rux-form-field__label">First Name</label>
-                <input id="user-first_name" type="text" value=${this.state.selectedUser.first_name} onChange=${(e) => this.setState({ selectedUser : {...this.state.selectedUser, first_name: e.target.value }})} />
+                <input id="user-first_name" type="text" value=${this.state.selectedUser.first_name} onInput=${(e) => this.setState({ selectedUser : {...this.state.selectedUser, first_name: e.target.value }})} />
               </div>
               <div class="rux-form-field mb2">
                 <label for="user-last_name" class="rux-form-field__label">Last Name</label>
-                <input id="user-last_name" type="text" value=${this.state.selectedUser.last_name} onChange=${(e) => this.setState({ selectedUser : {...this.state.selectedUser, last_name: e.target.value }})} />
+                <input id="user-last_name" type="text" value=${this.state.selectedUser.last_name} onInput=${(e) => this.setState({ selectedUser : {...this.state.selectedUser, last_name: e.target.value }})} />
               </div>
               <div class="rux-form-field mb2">
                 <label for="user-email" class="rux-form-field__label">User Email</label>
-                <input id="user-email" type="email" value=${this.state.selectedUser.email} onChange=${(e) => this.setState({ selectedUser : {...this.state.selectedUser, email: e.target.value }})} />
+                <input id="user-email" type="email" value=${this.state.selectedUser.email} onInput=${(e) => this.setState({ selectedUser : {...this.state.selectedUser, email: e.target.value }})} />
               </div>
               <div class="rux-form-field mb2">
                 <label for="user-password" class="rux-form-field__label">User Password</label>
-                <input id="user-password" type="password" value=${this.state.selectedUser.password} onChange=${(e) => this.setState({ selectedUser : { ...this.state.selectedUser, password: e.target.value }})} />
+                <input id="user-password" type="password" value=${this.state.selectedUser.password} onInput=${(e) => this.setState({ selectedUser : { ...this.state.selectedUser, password: e.target.value }})} />
               </div>
               <div class="rux-form-field mb2">
                 <label for="user-user_id" class="rux-form-field__label">User ID</label>
-                <input id="user-user_id" value=${this.state.selectedUser.user_id} onChange=${(e) => this.setState({ selectedUser : { ...this.state.selectedUser, user_id: e.target.value }})} />
+                <input id="user-user_id" value=${this.state.selectedUser.user_id} onInput=${(e) => this.setState({ selectedUser : { ...this.state.selectedUser, user_id: e.target.value }})} />
               </div>
               <div class="rux-form-field mb2">
                 <${Checkbox} id="user-reset" label="Expire Password?" checked=${this.state.selectedUser.reset_password} onClick=${(checked) => this.setState({ selectedUser : { ...this.state.selectedUser, reset_password: checked }})} />

@@ -5,7 +5,7 @@ export class Icon extends Component {
 
   render(props) {
     return html`
-      <span onClick=${() => props.onClick && props.onClick()}>
+      <span class="flex items-center" onClick=${() => props.onClick && props.onClick()}>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           preserveAspectRatio="xMidYMid meet"
