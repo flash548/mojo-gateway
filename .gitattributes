@@ -1,0 +1,6 @@
+# github incorrectly classifies some source as perl6/raku for some reason
+# these override that behavior
+
+*.pm linguist-language=perl
+*.pl linguist-language=perl
+*.t linguist-language=perl
