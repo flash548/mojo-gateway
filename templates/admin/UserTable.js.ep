@@ -41,6 +41,7 @@ export class UserTable extends Component {
           />
         </div>
       </div>
+      <div style=${{ overflowY: 'auto', maxHeight: '75vh' }}>
       <table class="rux-table">
         <tr>
           <th class="flex items-center">
@@ -105,6 +106,7 @@ export class UserTable extends Component {
             `
           )}
       </table>
+      </div>
     </div>`;
   }
 }
