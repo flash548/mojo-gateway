@@ -10,9 +10,19 @@ sub proxy ($self, $c, $name) {
   my $request = $c->req->clone;
   my $route_spec = $self->config->{routes}->{$name} // $self->config->{default_route};
   my $uri     = $route_spec->{uri};
+  
+  if ($route_spec->{rewrite_path} 
+    && defined($route_spec->{rewrite_path}->{match})
+    && defined($route_spec->{rewrite_path}->{with})) {
+    my $match = $route_spec->{rewrite_path}->{match};
+    my $with = $route_spec->{rewrite_path}->{with};
+    my $new_path = ($c->req->url->path =~ s/$match/$with/re);
+    $c->req->url->path($new_path);
+  }
 
   # remove the trailing slash if present
   $uri =~ s!/$!!;
+  say $uri . $c->req->url;
   $request->url(Mojo::URL->new($uri . $c->req->url));
 
   # see if we wanna use JWT for this proxy route

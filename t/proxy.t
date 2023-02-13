@@ -6,7 +6,7 @@ use Constants;
 
 # our mock Mojo::UserAgent that we inject into the app after bootstrap
 package MockAgent;
-
+use Test::More;
 sub new {
   bless({}, 'MockAgent');
 }
@@ -20,6 +20,7 @@ sub start {
   for my $header (keys %{$transaction->req->headers->to_hash}) {
     $res->headers->add($header => $transaction->req->headers->to_hash->{$header});
   }
+  $res->headers->add(orig_location => $transaction->req->url);
   $res->headers->add(location     => '/frontend');
   $res->headers->add(content_type => 'application/json');
   $tx->res($res);
@@ -124,6 +125,25 @@ subtest 'check that we can do response body transforms' => sub {
 
   # make sure we modified the body as specified for this route
   $t->get_ok('/s')->status_is(Constants::HTTP_OK)->content_like(qr/Mojo Rocks!/);
+};
+
+subtest 'check that we can do inbound request path rewrites' => sub {
+  my $config2 = $config;
+  $config2->{routes}->{'/ui/**'}->{rewrite_path}->{match} = "^/ui";
+  $config2->{routes}->{'/ui/**'}->{rewrite_path}->{with} = "";
+  $config2->{routes}->{'/ui/**'}->{requires_login} = 0;
+  $config2->{routes}->{'/ui/**'}->{uri} = 'http://localhost:3000/frontend';
+  my $t = Test::Mojo->new('Gateway', $config2);
+
+  $t->ua->max_redirects(3);
+
+  # inject our mocked UserAgent class
+  $t->app->proxy_service->ua(MockAgent->new);
+
+  $t->get_ok('/ui/some-page')
+    ->status_is(Constants::HTTP_OK)
+    ->header_is('location' => '/frontend')
+    ->header_is('orig_location' => 'http://localhost:3000/frontend/some-page');
 };
 
 done_testing();
