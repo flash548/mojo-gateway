@@ -41,6 +41,11 @@ sub startup ($self) {
         return $db_handle;
       } elsif (!defined($config->{test}) && $config->{db_type} eq 'pg') {
         state $db_handle = Mojo::Pg->new($config->{db_uri});
+
+        # turn off pg-server-side prepares since in prod we're running this
+        # thing in prefork mode.  If not pre-fork, shouldn't matter as to this
+        # setting's value
+        $db_handle->db->dbh->{pg_server_prepare} = 0;
         return $db_handle;
       } else {
 
