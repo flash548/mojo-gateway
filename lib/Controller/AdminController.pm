@@ -1,11 +1,49 @@
 package Controller::AdminController;
 use Mojo::Base 'Mojolicious::Controller', -signatures;
+use Constants;
+
 
 # This is the Admin controller
 # all the administrative actions come through here
 # via the client's Admin Dashboard web UI
 
 has 'user_service';
+
+sub _trim { return $_[0] =~ s/^\s+|\s+$//gr; }
+sub _detect_gremlins {
+  my $in = shift;
+
+  # no cntrl chars
+  return 1 if $in =~ m/\p{cntrl}/;
+
+  # no non-ascii
+  return 1 if $in =~ m/[^\p{ascii}]/;
+  
+}
+
+sub validate_user_object($user, $validate_password_field_present) {
+  my $email = $user->{email};
+  my $pass = $user->{password};
+
+  if (!defined($email) || _trim($email) eq '' || _detect_gremlins($email)) {
+    return undef;
+  }
+
+  # validate email-ness
+  if ($email !~ m/.+@.+\..+$/) {
+    return undef;
+  }
+
+  return 1 if !$validate_password_field_present;
+
+  # somtimes password field doesnt have to be present (like on PUT)
+  # if passwd not being changed
+  if (!defined($pass) || _trim($pass) eq '' || _detect_gremlins($pass)) {
+    return undef;
+  }
+
+  return 1;
+}
 
 # serve the admin SPA static page (if you're allowed to see it...)
 sub admin_page_get ($self, $c) {
@@ -14,12 +52,20 @@ sub admin_page_get ($self, $c) {
 
 # create a user
 sub add_user_post ($self, $c) {
-  $self->user_service->add_user($c);
+  if (validate_user_object($c->req->json, 1)) {
+    $self->user_service->add_user($c);  
+  } else {
+    $c->render(status => Constants::HTTP_BAD_REQUEST, json => { message => 'User object malformed'});
+  }
 }
 
 # update a user
 sub update_user_put ($self, $c) {
-  $self->user_service->update_user($c);
+  if (validate_user_object($c->req->json, 0)) {
+    $self->user_service->update_user($c);
+  } else {
+    $c->render(status => Constants::HTTP_BAD_REQUEST, json => { message => 'User object malformed'});
+  }
 }
 
 # get all users or just one (if query param 'email' is present)

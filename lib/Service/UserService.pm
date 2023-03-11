@@ -8,6 +8,8 @@ use Constants;
 has 'db';
 has 'config';
 has 'password_util'           => sub { Password::Utils->new };
+
+# other fields/keys allowed to POST/PUT besides the the email field (otherwise they're ignored)
 has 'user_obj_allowed_fields' => sub { ['reset_password', 'first_name', 'last_name', 'is_admin', 'user_id'] };
 
 # creates a default admin user if it doesnt exist
