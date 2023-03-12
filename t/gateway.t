@@ -197,6 +197,58 @@ qr/Password Change Failed: New Password does not meet complexity requirements/,
         'New Password doesnt meet complexity'
     );
 
+    # change password - passwords pure whitespace - fails with error
+    $t->post_ok(
+        '/auth/password/change',
+        form => {
+            'current-password'     => 'password',
+            'new-password'         => '  ',
+            'retyped-new-password' => '  '
+        }
+    )->status_is(Constants::HTTP_OK)->content_like(
+qr/Password Change Failed: Passwords cannot be whitespace/,
+        'Passwords cannot be whitespace'
+    );
+
+    # change password - non-ascii characters - fails with error
+    $t->post_ok(
+        '/auth/password/change',
+        form => {
+            'current-password'     => 'password',
+            'new-password'         => "password!\0-2world",
+            'retyped-new-password' => "password!\0-2world"
+        }
+    )->status_is(Constants::HTTP_OK)->content_like(
+qr/Password Change Failed: Passwords cannot contain non-ascii characters/,
+        'Passwords cannot contain non-ascii characters'
+    );
+
+    # change password - non-ascii characters - fails with error
+    $t->post_ok(
+        '/auth/password/change',
+        form => {
+            'current-password'     => 'password',
+            'new-password'         => 'password!✅2world',
+            'retyped-new-password' => 'password!✅2world'
+        }
+    )->status_is(Constants::HTTP_OK)->content_like(
+qr/Password Change Failed: Passwords cannot contain non-ascii characters/,
+        'Passwords cannot contain non-ascii characters'
+    );
+
+    # change password - over 255 chars - fails with error
+    $t->post_ok(
+        '/auth/password/change',
+        form => {
+            'current-password'     => 'password',
+            'new-password'         => 'p' x 256,
+            'retyped-new-password' => 'p' x 256
+        }
+    )->status_is(Constants::HTTP_OK)->content_like(
+qr/Password Change Failed: Passwords cannot exceed 255 chars/,
+        'Passwords cannot exceed 255 chars'
+    );
+
     # change password, get re-directed back to root route upon success
     $t->post_ok(
         '/auth/password/change',
@@ -490,6 +542,17 @@ subtest 'Test malformed user object is caught' => sub {
         json => {
             email          => "somedude\@test2.com",
             password       => "legit✅password",
+            reset_password => 0,
+            is_admin       => 0
+        }
+    )->status_is(Constants::HTTP_BAD_REQUEST);
+
+    # add non-admin-user - pass over 255 chars
+    $t->post_ok(
+        '/admin/users',
+        json => {
+            email          => "somedude\@test2.com",
+            password       => "l!221q" . "w" x 250,
             reset_password => 0,
             is_admin       => 0
         }

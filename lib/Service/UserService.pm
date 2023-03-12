@@ -211,21 +211,50 @@ sub update_user ($self, $c) {
   }
 }
 
+sub _trim { return $_[0] =~ s/^\s+|\s+$//gr; }
+sub _detect_gremlins {
+  my $in = shift;
+
+  # no cntrl chars
+  return 1 if $in =~ m/\p{cntrl}/;
+
+  # no non-ascii
+  return 1 if $in =~ m/[^\p{ascii}]/;
+  
+}
+
 sub do_password_change ($self, $c) {
 
-  if (!$c->req->param('current-password') || !$c->req->param('new-password') || !$c->req->param('retyped-new-password'))
+  my $existing_password = $c->req->param('current-password');
+  my $new_password = $c->req->param('new-password');
+  my $retyped_password = $c->req->param('retyped-new-password');
+
+  if (!$existing_password || !$new_password || !$retyped_password)
   {
     $c->flash({return_to => $c->flash('return_to'), error_msg => 'Required fields not present or they were blank'});
     $c->redirect_to('/auth/password/change',);
-    return;
   }
 
-  my $existing_password = $c->req->param('current-password');
-  my $new_password      = $c->req->param('new-password');
-  my $retyped_password  = $c->req->param('retyped-new-password');
+  # check for empty pass after trim (even though it would fail complexity anyways...)
+  elsif (_trim($existing_password) eq '' || _trim($new_password) eq '' || _trim($retyped_password) eq '') {
+    $c->flash({return_to => $c->flash('return_to'), error_msg => 'Passwords cannot be whitespace'});
+    $c->redirect_to('/auth/password/change',);
+  }
+
+  # check for non-ascii
+  elsif (_detect_gremlins($existing_password) || _detect_gremlins($new_password) || _detect_gremlins($retyped_password)) {
+    $c->flash({return_to => $c->flash('return_to'), error_msg => 'Passwords cannot contain non-ascii characters'});
+    $c->redirect_to('/auth/password/change',);
+  }
+
+  # check for max length
+  elsif (length($new_password) > 255) {
+    $c->flash({return_to => $c->flash('return_to'), error_msg => 'Passwords cannot exceed 255 chars'});
+    $c->redirect_to('/auth/password/change',);
+  }
 
   # see if the existing password was correct
-  if ( !$existing_password
+  elsif ( !$existing_password
     || !$self->password_util->check_pass($self->_get_user($c->session->{user}->{email})->{password}, $existing_password)
   ) {
     $c->flash({return_to => $c->flash('return_to'), error_msg => 'Existing Password Incorrect'});

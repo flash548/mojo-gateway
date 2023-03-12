@@ -34,11 +34,11 @@ sub validate_user_object($user, $validate_password_field_present) {
     return undef;
   }
 
-  return 1 if !$validate_password_field_present;
+  return 1 if !$validate_password_field_present && !defined($pass);
 
   # somtimes password field doesnt have to be present (like on PUT)
   # if passwd not being changed
-  if (!defined($pass) || _trim($pass) eq '' || _detect_gremlins($pass)) {
+  if (!defined($pass) || _trim($pass) eq '' || _detect_gremlins($pass) || length($pass) > 255) {
     return undef;
   }
 
