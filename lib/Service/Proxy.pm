@@ -22,7 +22,6 @@ sub proxy ($self, $c, $name) {
 
   # remove the trailing slash if present
   $uri =~ s!/$!!;
-  say $uri . $c->req->url;
   $request->url(Mojo::URL->new($uri . $c->req->url));
 
   # see if we wanna use JWT for this proxy route

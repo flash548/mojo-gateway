@@ -25,3 +25,18 @@ ADD COLUMN last_name VARCHAR(255);
 -- is 'email' since its the primary key
 ALTER TABLE users
   RENAME COLUMN dod_id TO user_id;
+
+-- 6 up
+CREATE TABLE http_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_email VARCHAR, 
+  response_status INTEGER,
+  request_path VARCHAR(255),
+  request_query_string VARCHAR(255),
+  request_time TIMESTAMP,
+  request_method VARCHAR(10),
+  request_host VARCHAR(255),
+  request_user_agent VARCHAR(255),
+  time_taken_ms INTEGER,
+  foreign key(user_email) references users(email)
+);

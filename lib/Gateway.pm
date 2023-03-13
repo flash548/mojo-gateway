@@ -6,12 +6,16 @@ use Mojo::SQLite;
 use lib qw(./lib);
 use Service::UserService;
 use Service::Proxy;
+use Service::HttpLogService;
 use Controller::AdminController;
 use Controller::UserController;
+use Time::HiRes qw/gettimeofday/;
+use Time::Piece;
 use Constants;
 
 has 'user_service';
 has 'proxy_service';
+has 'http_log_service';
 has 'admin_controller';
 has 'user_controller';
 
@@ -19,6 +23,16 @@ sub startup ($self) {
   my $config = $self->plugin('JSONConfig');
   $self->secrets([$config->{secret}]);
   $self->sessions->cookie_name($config->{cookie_name} // 'mojolicious');
+  $self->hook(
+    before_dispatch => sub ($c) {
+
+      # start the http trace
+      my ($secs, $micros) = gettimeofday();
+      $c->{http_req_start} = gmtime()->datetime;
+      $c->{http_trace_start} = $micros;
+      
+    }
+  );
 
   $self->hook(
     after_dispatch => sub ($c) {
@@ -27,6 +41,28 @@ sub startup ($self) {
       if ($config->{strip_headers_to_client}) {
         $c->res->headers->remove(lc $_) for (@{$config->{strip_headers_to_client}});
       }
+
+      # log the http trace
+      my ($secs, $micros) = gettimeofday();
+
+      # convert to mS
+      my $time_delta = ($micros - $c->{http_trace_start})/1000;
+
+      if ($time_delta) {
+        $self->db_conn->db->insert(http_logs => {
+          user_email => $c->session->{user}->{email},
+          response_status => $c->res->code,
+          request_path => $c->req->url->path->to_string,
+          request_query_string => $c->req->url->query->to_string,
+          request_time => $c->{http_req_start},
+          request_method => $c->req->method,
+          request_host => $c->req->url->base->{host},
+          request_user_agent => $c->req->headers->user_agent,
+          time_taken_ms => $time_delta,
+        });
+      }
+
+
     }
   );
 
@@ -44,11 +80,13 @@ sub startup ($self) {
 
         # turn off pg-server-side prepares since in prod we're running this
         # thing in prefork mode.  If not pre-fork, shouldn't matter as to this
-        # setting's value
+        # setting's value, otherwise we get multiple Mojo::Gateway instances telling Postgres to 
+        # prepare identical, already stored statements causing exceptions...
         $db_handle->db->dbh->{pg_server_prepare} = 0;
         return $db_handle;
       } else {
 
+        # in-mem, volatile database
         # for tests and future tests...
         state $db_handle = Mojo::SQLite->new(':temp:');
         return $db_handle;
@@ -59,6 +97,7 @@ sub startup ($self) {
   $self->db_conn->auto_migrate(1)->migrations->from_file('./migrations/data.sql');
 
   $self->user_service(Service::UserService->new(db => $self->db_conn->db, config => $config));
+  $self->http_log_service(Service::HttpLogService->new(db => $self->db_conn->db, config => $config));
   $self->proxy_service(Service::Proxy->new(config => $config, ua => Mojo::UserAgent->new));
   $self->admin_controller(Controller::AdminController->new(user_service => $self->user_service));
   $self->user_controller(Controller::UserController->new(user_service => $self->user_service));
