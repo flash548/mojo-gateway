@@ -81,7 +81,8 @@ sub get_logs($self, $page, $page_size, $from_date, $to_date) {
 select * from http_logs 
   where request_time >= ? and request_time <= ? 
   limit ? 
-  offset ?
+  offset ? 
+  order by request_time asc
 QUERY_END
   
   # get the count of the whole resultset
