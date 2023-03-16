@@ -4,14 +4,29 @@ use Service::HttpLogService;
 use Mojo::URL;
 use Mojo::Message::Response;
 
-# mock db instance to return what we give the insert method
+# mock db instance
 package MockDb;
 sub new {
-  bless({}, 'MockDb');
+  bless({ table => [] }, 'MockDb');
 }
 sub insert {
-  shift;
-  return shift;
+  my ($self, $row) = @_;
+  push @{$self->{table}}, $row;
+}
+
+# mock context
+package MockContext;
+sub new { 
+  bless({ session => {}, req => {}, res => {}}, 'MockContext')
+}
+sub session {
+  return shift->{session};
+}
+sub req {
+  return shift->{req}; 
+}
+sub res {
+  return shift->{res};
 }
 
 package main;
@@ -21,14 +36,18 @@ subtest 'Test Http Trace Logging' => sub {
   my $res = Mojo::Message::Response->new; 
   $res->code(200);
 
-  my $req = Mojo::Message::Request->new;
-  req->url(Mojo::URL->new("http://localhost:8080/some/path?option=1"));
-  req->method('GET');
-  req->headers()
+  my $headers = Mojo::Headers->new;
+  $headers->user_agent("Netscape Gold");
 
-  my $context = { session => { user => 'tony '}, res => { code => 200 }, req => { 
-    url => 
-  }};
+  my $req = Mojo::Message::Request->new;
+  $req->url(Mojo::URL->new("http://localhost:8080/some/path?option=1"));
+  $req->method('GET');
+  $req->headers($headers);
+
+  my $context = MockContext->new;
+  $context->{session} = { user => { email => 'test@test.com' }};
+  $context->{req} = $req;
+  $context->{res} = $res;
 
   my $db_mock = MockDb->new;
   my $service = Service::HttpLogService->new({ db => $db_mock, config => { enable_logging => 1 }});
@@ -36,7 +55,10 @@ subtest 'Test Http Trace Logging' => sub {
   ok defined($context->{http_req_start}), "Http Trace time noted";
   ok defined($context->{http_trace_start}), "Http Trace time noted - microseconds";
 
-  $service->end_trace()
+  # check db empty, log the trace, then check db isnt empty
+  ok $db_mock->{table}->@* == 0, 'DB empty';
+  $service->end_trace($context);
+  ok $db_mock->{table}->@* > 0, 'DB modified';
 };
 
 subtest 'Test Http Trace Logging - disabled' => sub {
