@@ -4,6 +4,7 @@ use Time::Piece;
 
 use Password::Utils;
 use Constants;
+use Utils;
 
 has 'db';
 has 'config';
@@ -211,18 +212,6 @@ sub update_user ($self, $c) {
   }
 }
 
-sub _trim { return $_[0] =~ s/^\s+|\s+$//gr; }
-sub _detect_gremlins {
-  my $in = shift;
-
-  # no cntrl chars
-  return 1 if $in =~ m/\p{cntrl}/;
-
-  # no non-ascii
-  return 1 if $in =~ m/[^\p{ascii}]/;
-  
-}
-
 sub do_password_change ($self, $c) {
 
   my $existing_password = $c->req->param('current-password');
@@ -236,13 +225,13 @@ sub do_password_change ($self, $c) {
   }
 
   # check for empty pass after trim (even though it would fail complexity anyways...)
-  elsif (_trim($existing_password) eq '' || _trim($new_password) eq '' || _trim($retyped_password) eq '') {
+  elsif (Utils::trim($existing_password) eq '' || Utils::trim($new_password) eq '' || Utils::trim($retyped_password) eq '') {
     $c->flash({return_to => $c->flash('return_to'), error_msg => 'Passwords cannot be whitespace'});
     $c->redirect_to('/auth/password/change',);
   }
 
   # check for non-ascii
-  elsif (_detect_gremlins($existing_password) || _detect_gremlins($new_password) || _detect_gremlins($retyped_password)) {
+  elsif (Utils::detect_gremlins($existing_password) || Utils::detect_gremlins($new_password) || Utils::detect_gremlins($retyped_password)) {
     $c->flash({return_to => $c->flash('return_to'), error_msg => 'Passwords cannot contain non-ascii characters'});
     $c->redirect_to('/auth/password/change',);
   }

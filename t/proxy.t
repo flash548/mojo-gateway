@@ -1,6 +1,5 @@
 use Test::Mojo;
 use Test::More;
-use Mojo::File qw(curfile);
 use Gateway;
 use Constants;
 

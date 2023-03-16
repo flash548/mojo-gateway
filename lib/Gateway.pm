@@ -9,8 +9,6 @@ use Service::Proxy;
 use Service::HttpLogService;
 use Controller::AdminController;
 use Controller::UserController;
-use Time::HiRes qw/gettimeofday/;
-use Time::Piece;
 use Constants;
 
 has 'user_service';
@@ -27,10 +25,7 @@ sub startup ($self) {
     before_dispatch => sub ($c) {
 
       # start the http trace
-      my ($secs, $micros) = gettimeofday();
-      $c->{http_req_start} = gmtime()->datetime;
-      $c->{http_trace_start} = $micros;
-      
+      $self->http_log_service->start_trace($c);
     }
   );
 
@@ -43,26 +38,7 @@ sub startup ($self) {
       }
 
       # log the http trace
-      my ($secs, $micros) = gettimeofday();
-
-      # convert to mS
-      my $time_delta = ($micros - $c->{http_trace_start})/1000;
-
-      if ($time_delta) {
-        $self->db_conn->db->insert(http_logs => {
-          user_email => $c->session->{user}->{email},
-          response_status => $c->res->code,
-          request_path => $c->req->url->path->to_string,
-          request_query_string => $c->req->url->query->to_string,
-          request_time => $c->{http_req_start},
-          request_method => $c->req->method,
-          request_host => $c->req->url->base->{host},
-          request_user_agent => $c->req->headers->user_agent,
-          time_taken_ms => $time_delta,
-        });
-      }
-
-
+      $self->http_log_service->end_trace($c);
     }
   );
 
@@ -99,7 +75,7 @@ sub startup ($self) {
   $self->user_service(Service::UserService->new(db => $self->db_conn->db, config => $config));
   $self->http_log_service(Service::HttpLogService->new(db => $self->db_conn->db, config => $config));
   $self->proxy_service(Service::Proxy->new(config => $config, ua => Mojo::UserAgent->new));
-  $self->admin_controller(Controller::AdminController->new(user_service => $self->user_service));
+  $self->admin_controller(Controller::AdminController->new(user_service => $self->user_service, log_service => $self->http_log_service));
   $self->user_controller(Controller::UserController->new(user_service => $self->user_service));
 
   # create the admin user if it doesn't exist
@@ -145,7 +121,9 @@ sub startup ($self) {
    );
   }
 
-  # all routes from here-on require authentication
+  #
+  #
+  # all routes from here-on require authenticated user
   my $authorized_routes = $self->routes->under('/' => sub ($c) { $self->user_service->check_user_status($c) });
 
   # the routes under '/admin' requires admin-type, authenticated users
@@ -163,7 +141,7 @@ sub startup ($self) {
   $admin_routes->post('/users' => sub ($c) { $self->admin_controller->add_user_post($c) });
   $admin_routes->put('/users' => sub ($c) { $self->admin_controller->update_user_put($c) });
   $admin_routes->get('/users' => sub ($c) { $self->admin_controller->users_get($c) });
-  $admin_routes->get('/users' => sub ($c) { $self->admin_controller->users_get($c) });
+  $admin_routes->get('/http_logs' => sub ($c) { $self->admin_controller->get_http_logs($c) });
   $admin_routes->delete('/users' => sub ($c) { $self->admin_controller->users_delete($c) });
 
   # show the password change form
@@ -181,6 +159,8 @@ sub startup ($self) {
       }
     );
   }
+
+  # for if our default route is a locked down route requiring an authenticated user
   if (!defined($config->{default_route}->{requires_login}) || $config->{default_route}->{requires_login}) {
 
     # catch-all/default routes - routes to the default_routes specified in the config json

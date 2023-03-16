@@ -1,74 +1,78 @@
 package Controller::AdminController;
 use Mojo::Base 'Mojolicious::Controller', -signatures;
 use Constants;
-
+use Utils;
+use Time::Piece;
 
 # This is the Admin controller
 # all the administrative actions come through here
-# via the client's Admin Dashboard web UI
+# via the client's Admin Dashboard web UI so you need to be
+# an admin to be able to reach these endpoints
 
 has 'user_service';
+has 'log_service';
 
-sub _trim { return $_[0] =~ s/^\s+|\s+$//gr; }
-sub _detect_gremlins {
-  my $in = shift;
-
-  # no cntrl chars
-  return 1 if $in =~ m/\p{cntrl}/;
-
-  # no non-ascii
-  return 1 if $in =~ m/[^\p{ascii}]/;
-  
-}
-
-sub validate_user_object($user, $validate_password_field_present) {
-  my $email = $user->{email};
-  my $pass = $user->{password};
-
-  if (!defined($email) || _trim($email) eq '' || _detect_gremlins($email)) {
-    return undef;
-  }
-
-  # validate email-ness
-  if ($email !~ m/.+@.+\..+$/) {
-    return undef;
-  }
-
-  return 1 if !$validate_password_field_present && !defined($pass);
-
-  # somtimes password field doesnt have to be present (like on PUT)
-  # if passwd not being changed
-  if (!defined($pass) || _trim($pass) eq '' || _detect_gremlins($pass) || length($pass) > 255) {
-    return undef;
-  }
-
-  return 1;
-}
-
-# serve the admin SPA static page (if you're allowed to see it...)
+# GET /admin
+#
+# Reachable by: 'ADMIN'
+#
+# Description-
+# Serve the admin SPA static page
+#
+# Content-Type: 'text/html'
 sub admin_page_get ($self, $c) {
   $c->render('admin', email => $c->session->{user}->{email} // 'Unknown');
 }
 
-# create a user
+# POST /admin/users
+#
+# Reachable by: 'ADMIN'
+#
+# Body-
+# Json object of person to create
+#
+# Description-
+# creates a user
+#
+# Content-Type: 'application/json'
 sub add_user_post ($self, $c) {
-  if (validate_user_object($c->req->json, 1)) {
+  if (Utils::validate_user_object($c->req->json, 1)) {
     $self->user_service->add_user($c);  
   } else {
     $c->render(status => Constants::HTTP_BAD_REQUEST, json => { message => 'User object malformed'});
   }
 }
 
-# update a user
+# PUT /admin/users
+#
+# Reachable by: 'ADMIN'
+#
+# Body-
+# Json object of the person to update
+#
+# Description-
+# update a single user
+#
+# Content-Type: 'application/json'
 sub update_user_put ($self, $c) {
-  if (validate_user_object($c->req->json, 0)) {
+  if (Utils::validate_user_object($c->req->json, 0)) {
     $self->user_service->update_user($c);
   } else {
     $c->render(status => Constants::HTTP_BAD_REQUEST, json => { message => 'User object malformed'});
   }
 }
 
-# get all users or just one (if query param 'email' is present)
+# GET /admin/users
+#
+# Reachable by: 'ADMIN'
+#
+# Query Params-
+# email (optional, if you want to just fetch one user vs all)
+#
+# Description-
+# Get all users or just one (if query param 'email' is present)
+#
+# Content-Type: 'application/json'
 sub users_get ($self, $c) {
   # if we provide a single email via query param...
   if ($c->req->param('email')) {
@@ -86,7 +90,17 @@ sub users_get ($self, $c) {
   }
 }
 
-# delete a user (with query param 'email')
+# DELETE /admin/user
+#
+# Reachable by: 'ADMIN'
+#
+# Query Params-
+# email - (required, the email of the user to delete)
+#
+# Description-
+# deletes a user (with query param 'email')
+#
+# Content-Type: 'application/json'
 sub users_delete ($self, $c) {
   if ($c->req->param('email')) {
     my $user = $self->user_service->delete_single_user($c);
@@ -99,6 +113,67 @@ sub users_delete ($self, $c) {
     # bad request
     $c->render(json => { message => 'Email query param is required' }, status => Constants::HTTP_BAD_REQUEST );
   }
+}
+
+# GET /admin/http_logs
+#
+# Reachable by: 'ADMIN'
+#
+# Query Params-
+# pageSize (int) (optional, defaults to 25)
+# page (int) (optional, defaults to 0th page)
+# fromDate (iso8601) (optional, defaults to now - 30days)
+# toDate (iso8601) (optional, defaults to now)
+#
+# Description-
+# gets a set of logs of given length and in given date/time range
+#
+# Returns-
+# { 
+# page: n, page_size: n, from_date: n, to_date: n, total_pages: n, 
+# total_items: n, 
+# results: [
+#  { 
+#   user_email,
+#   response_status,
+#   request_path,
+#   request_query_string,
+#   request_time,
+#   request_method,
+#   request_host,
+#   request_user_agent,
+#   time_taken_ms,
+#  }
+# ]
+#
+# Content-Type: 'application/json'
+sub get_http_logs ($self, $c) {
+
+  # default to 30 days before now
+  my $from_date = $c->req->param('fromDate') // gmtime()->add(30 * (-24 * 60 * 60))->datetime;
+
+  # default to now
+  my $to_date = $c->req->param('toDate') // gmtime()->datetime;
+
+  # default to page 0
+  my $page = $c->req->param('page') // 0;
+
+  # default to page size 25
+  my $page_size = $c->req->param('pageSize') // 25;
+
+  # validate all this stuff
+  if (! ($page_size >= 1 && $page_size <= 1000)) {
+    $c->render(json => { message => 'Page Size must be 1 to 1000' }, status => Constants::HTTP_BAD_REQUEST);
+  } elsif ($page < 0) {
+    $c->render(json => { message => 'Page cannot be less than 0' }, status => Constants::HTTP_BAD_REQUEST);
+  } elsif (!Utils::validate_ISO_string($from_date)) {
+    $c->render(json => { message => 'From date does not appear to be the format yyyy-MM-ddThh:mm:ss' }, status => Constants::HTTP_BAD_REQUEST);
+  } elsif (!Utils::validate_ISO_string($to_date)) {
+    $c->render(json => { message => 'To date does not appear to be the format yyyy-MM-ddThh:mm:ss' }, status => Constants::HTTP_BAD_REQUEST);
+  } else {
+    $c->render(json => $self->log_service->get_logs($page, $page_size, $from_date, $to_date));
+  }
+
 }
 
 1;
