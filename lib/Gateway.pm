@@ -56,7 +56,7 @@ sub startup ($self) {
 
         # turn off pg-server-side prepares since in prod we're running this
         # thing in prefork mode.  If not pre-fork, shouldn't matter as to this
-        # setting's value, otherwise we get multiple Mojo::Gateway instances telling Postgres to 
+        # setting's value, otherwise we get multiple Mojo::Gateway instances telling Postgres to
         # prepare identical, already stored statements causing exceptions...
         $db_handle->db->dbh->{pg_server_prepare} = 0;
         return $db_handle;
@@ -75,7 +75,8 @@ sub startup ($self) {
   $self->user_service(Service::UserService->new(db => $self->db_conn->db, config => $config));
   $self->http_log_service(Service::HttpLogService->new(db => $self->db_conn->db, config => $config));
   $self->proxy_service(Service::Proxy->new(config => $config, ua => Mojo::UserAgent->new));
-  $self->admin_controller(Controller::AdminController->new(user_service => $self->user_service, log_service => $self->http_log_service));
+  $self->admin_controller(
+    Controller::AdminController->new(user_service => $self->user_service, log_service => $self->http_log_service));
   $self->user_controller(Controller::UserController->new(user_service => $self->user_service));
 
   # create the admin user if it doesn't exist
@@ -118,7 +119,7 @@ sub startup ($self) {
       cb => sub ($c) {
         $self->proxy_service->proxy($c, 'default_route');
       }
-   );
+    );
   }
 
   #
@@ -140,7 +141,7 @@ sub startup ($self) {
   $admin_routes->get('/' => sub ($c) { $self->admin_controller->admin_page_get($c) });
   $admin_routes->post('/users' => sub ($c) { $self->admin_controller->add_user_post($c) });
   $admin_routes->put('/users' => sub ($c) { $self->admin_controller->update_user_put($c) });
-  $admin_routes->get('/users' => sub ($c) { $self->admin_controller->users_get($c) });
+  $admin_routes->get('/users'     => sub ($c) { $self->admin_controller->users_get($c) });
   $admin_routes->get('/http_logs' => sub ($c) { $self->admin_controller->get_http_logs($c) });
   $admin_routes->delete('/users' => sub ($c) { $self->admin_controller->users_delete($c) });
 

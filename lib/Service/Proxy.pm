@@ -7,15 +7,15 @@ has 'ua';
 
 # takes the request object ($c) named route from the config
 sub proxy ($self, $c, $name) {
-  my $request = $c->req->clone;
+  my $request    = $c->req->clone;
   my $route_spec = $self->config->{routes}->{$name} // $self->config->{default_route};
-  my $uri     = $route_spec->{uri};
-  
-  if ($route_spec->{rewrite_path} 
+  my $uri        = $route_spec->{uri};
+
+  if ( $route_spec->{rewrite_path}
     && defined($route_spec->{rewrite_path}->{match})
     && defined($route_spec->{rewrite_path}->{with})) {
-    my $match = $route_spec->{rewrite_path}->{match};
-    my $with = $route_spec->{rewrite_path}->{with};
+    my $match    = $route_spec->{rewrite_path}->{match};
+    my $with     = $route_spec->{rewrite_path}->{with};
     my $new_path = ($c->req->url->path =~ s/$match/$with/re);
     $c->req->url->path($new_path);
   }
@@ -45,7 +45,7 @@ sub proxy ($self, $c, $name) {
   # proxy actioning inspired from Mojolicious::Plugin::Proxy -> without it would not have figured this proxying out
   # trick is to copy the res over to the $c->tx->res not $c->res directly
   if (defined($tx->res->code)) {
-    my $res = $tx->res;
+    my $res  = $tx->res;
     my $body = $res->body;
 
     # do any transforms specified for this route

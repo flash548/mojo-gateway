@@ -24,13 +24,13 @@ sub login_page_get ($self, $c) {
 #
 # Reachable by: anyone (public)
 #
-# Description: 
+# Description:
 # Logs out a user
 #
 # Content-Type: 'text/html'
 sub logout_get ($self, $c) {
   $c->session(expires => 1);
-  $c->flash({ return_to => '/'});
+  $c->flash({return_to => '/'});
   $c->redirect_to('/login');
 }
 
@@ -41,7 +41,7 @@ sub logout_get ($self, $c) {
 # Body-
 # { username, password }
 #
-# Description- 
+# Description-
 # Handles logging in a user, which if successful will redirect them where requested
 # or if not successful, will keep them on the login page with a given error message
 #
@@ -54,7 +54,7 @@ sub login_post ($self, $c) {
 #
 # Reachable by: any logged in USER
 #
-# Description: 
+# Description:
 # Presents the password change page
 #
 # Content-Type: 'text/html'

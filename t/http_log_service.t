@@ -4,6 +4,20 @@ use Service::HttpLogService;
 use Mojo::URL;
 use Mojo::Message::Response;
 
+# mock Mojo Results
+package MockResults;
+use Mojo::Collection qw/c/;
+sub new {
+  bless({ table => [] }, 'MockResults');
+}
+sub hashes {
+  return shift->{table};
+}
+sub arrays {
+  return c(shift->{table}->@*);
+}
+#####################
+
 # mock db instance
 package MockDb;
 sub new {
@@ -13,6 +27,20 @@ sub insert {
   my ($self, $row) = @_;
   push @{$self->{table}}, $row;
 }
+sub query {
+  shift;
+  my $query = shift;
+  if ($query =~ m/count/) {
+    my $results = MockResults->new(); 
+    $results->{table} = [ [0] ];
+    return $results;
+  } else {
+    my $results = MockResults->new(); 
+    $results->{table} = $self->{table};
+    return $results;
+  }
+}
+#####################
 
 # mock context
 package MockContext;
@@ -28,6 +56,7 @@ sub req {
 sub res {
   return shift->{res};
 }
+#####################
 
 package main;
 
@@ -59,6 +88,9 @@ subtest 'Test Http Trace Logging' => sub {
   ok $db_mock->{table}->@* == 0, 'DB empty';
   $service->end_trace($context);
   ok $db_mock->{table}->@* > 0, 'DB modified';
+
+  # fetch logs
+  ok defined($service->get_logs(0, 10, '2023-01-01T00:00:00', '2023-02-01T00:00:00')), 'Logs returned';
 };
 
 subtest 'Test Http Trace Logging - disabled' => sub {
@@ -69,6 +101,7 @@ subtest 'Test Http Trace Logging - disabled' => sub {
   ok !defined($context->{http_req_start}), "Http Trace time NOT noted";
   ok !defined($context->{http_trace_start}), "Http Trace time NOT noted - microseconds";
 };
+
 
 done_testing();
 
