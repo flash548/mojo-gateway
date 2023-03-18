@@ -1,6 +1,7 @@
 {
   "login_page_title": "Login",
   "enable_logging": true,
+  "logging_ignore_paths": [ "/admin/http_logs", "/favicon", "/js", "/css", "/icons", "/fonts" ],
   "secret": "<%= $ENV{SECRET} // 'change_this' %>",
   "admin_user": "<%= $ENV{ADMIN_USER} // 'admin@admin.com' %>",
   "admin_pass": "<%= $ENV{ADMIN_PASS} // 'password' %>",

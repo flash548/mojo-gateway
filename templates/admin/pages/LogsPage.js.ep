@@ -1,80 +1,130 @@
 const ISO_STRING_FORMAT = "YYYY-MM-DDTHH:mm:ss";
+window.dayjs.extend(window.dayjs_plugin_utc);
 
 export class LogsPage extends Component {
-
   constructor(props) {
     super(props);
-    this.state = { 
-      startDate: window.dayjs().subtract(30, 'd').format(ISO_STRING_FORMAT),
-      endDate: window.dayjs().format(ISO_STRING_FORMAT),
+    this.state = {
+      startDate: window
+        .dayjs()
+        .utc()
+        .subtract(30, "d")
+        .format(ISO_STRING_FORMAT),
+      endDate: window.dayjs().utc().format(ISO_STRING_FORMAT),
+    };
+  }
+
+  getStatusIcon(statusValue) {
+    function getIcon(status) {
+      if (status >= 200 && status < 300) return "-3rem";
+      else if (status >= 300 && status < 400) return "-4rem";
+      else if (status >= 400 && status < 500) return "-2rem";
+      else if (status >= 500) return "-1rem";
+      else return "-5rem";
     }
+    return `<span class="flex items-center w-100 h-100 flex-row">
+    ${" "}<span class="flex">${statusValue}</span><span style="height: 1rem;
+            width: 1rem;
+            margin: 0.125rem;
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position-x: ${getIcon(statusValue)};
+            background-image: var(
+              --statusSymbols,
+              url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAAAgCAMAAABzRoe3AAAAgVBMVEUAAAD/tQv/swL/OTn/PDzftl9W8QBW8AAtzP8v0P9Z9gD/tAP/uQb/tAItzf8tzf+eqK2ep60uzP9X8QCfqK4uzf8uzf9X8QAuzP9X8ACeqK4vzP9Y8QAuzv9Y8gCeqq4wz/8xzv9A1f9Y8QD/tAP86DpW8AD/swL/ODgtzP+ep63tgXPUAAAAJXRSTlMAGNfAQAv98/IdG8Io52zz8+DZ2dC9trabm4F+a05OQjAaDG6dAJcYcwAAAfdJREFUWMPtmNlygkAQRScyrBp3QTZFNBj8/w9MCGI3dBOHMg9jyvOmVFnn1HUSULx4LibjN/HMTN7Po2cu+PY/cwUfPYg2XhKsbHsVJJ5gcaf+cjZb+lN3qJjxyWIw/lAwNMALreKKFTIJh215Y3sYFiD5AEn9oWBowM4uEPau65A6JcJJ/2ACg/pDwdCAo1W0sI6ixbTsMH18Akn9oWBgwK7xh4LWBmlJSB+dwCD+pEA5wLMLgo3OwcGpvzhxludZfH1Bz4EZrefzdWSqTSCJPylQDggLhhA+oD6/G7d+5W7qk9yV3C8uPyz2KhMYxJ8UKAd4Fhdg3SZwa3/4wLrA7fhfbuwVJpDEnxQoByQFS9I6wQ7ydR16js0FBCzMuxMY1J8WqAYEfEDQXPcr3RjbxNU7vsBEF0R0dwJJ/LkCxYAVH7Bqri8r3QzbZNU7S4FZ44B1/ymgA4zPfZwUA2w+wG6uzyrdHMvk1TszgZnjgLmgyL4T8Dbq8R+bWgUIgw4ABby/Vl8hIckAUMD7a3WIYQIYgC0Af73+jOIJpKAF1F+vf2QwAQxAC7C/ZrcSeAIpegvAX7ObOZgABiAF2F+322mYAAagBeCv2wMNTEAGIAWVv3aPlDABDMAW1P7aPdQjDBiALaj89ftZBSGl+LXgZIoXL/4VXyptNwzuHR/QAAAAAElFTkSuQmCC'));
+          "/></span>`;
   }
 
   componentDidMount() {
     const columnDefs = [
-      { field: 'request_time', headerName: "Date/Time" },
-      { field: 'response_status', headerName: "Status" },
-      { field: 'request_method', headerName: "Method" },
-      { field: 'request_path', headerName: "Path" },
-      { field: 'request_query_string', headerName: "Query Params" },
-      { field: 'user_email', headerName: "User" },
-      { field: 'request_user_agent', headerName: "User Agent" },
-      { field: 'request_host', headerName: "Host" },
-      { field: 'time_taken_ms', headerName: "Time (ms)" },
+      {
+        field: "request_time",
+        headerName: "Date/Time",
+        resizable: true,
+        suppressSizeToFit: true,
+        suppressMovable: true,
+      },
+      {
+        field: "response_status",
+        headerName: "Status",
+        suppressMovable: true,
+        cellRenderer: (params) => {
+          const tag = document.createElement("span");
+          tag.innerHTML = this.getStatusIcon(params.value);
+          return tag;
+        },
+      },
+      { field: "request_method", headerName: "Method", suppressMovable: true },
+      { field: "request_path", headerName: "Path", suppressMovable: true },
+      {
+        field: "request_query_string",
+        headerName: "Query Params",
+        suppressMovable: true,
+      },
+      { field: "user_email", headerName: "User", suppressMovable: true },
+      {
+        field: "request_user_agent",
+        headerName: "User Agent",
+        suppressMovable: true,
+      },
+      { field: "request_host", headerName: "Host", suppressMovable: true },
+      {
+        field: "time_taken_ms",
+        headerName: "Time (ms)",
+        suppressMovable: true,
+      },
     ];
 
-
-    // let the grid know which columns and what data to use
     const gridOptions = {
       columnDefs: columnDefs,
       rowData: [],
-      rowSelection: 'none',
-      domLayout: 'normal',
-      rowModelType: 'infinite',
-      // how big each page in our page cache will be, default is 100
+      rowSelection: "none",
+      domLayout: "normal",
+      rowModelType: "infinite",
       cacheBlockSize: 25,
-      // how many extra blank rows to display to the user at the end of the dataset,
-      // which sets the vertical scroll and then allows the grid to request viewing more rows of data.
-      // default is 1, ie show 1 row.
       cacheOverflowSize: 2,
-      // how many server side requests to send at a time. if user is scrolling lots, then the requests
-      // are throttled down
       maxConcurrentDatasourceRequests: 1,
-      // how many rows to initially show in the grid. having 1 shows a blank row, so it looks like
-      // the grid is loading from the users perspective (as we have a spinner in the first col)
       infiniteInitialRowCount: 25,
-      // how many pages to store in cache. default is undefined, which allows an infinite sized cache,
-      // pages are never purged. this should be set for large data to stop your browser from getting
-      // full of data
       maxBlocksInCache: 10,
+      suppressCellSelection: true
     };
 
-    const gridDiv = document.querySelector('#myGrid');
+    const gridDiv = document.querySelector("#myGrid");
     const grid = new agGrid.Grid(gridDiv, gridOptions);
-    console.log(grid);
     grid.gridOptions.api.sizeColumnsToFit();
+
     const dataSource = {
-      rowCount: undefined, // behave as infinite scroll
-    
+      rowCount: undefined,
       getRows: (params) => {
         const pageSize = 25;
-        console.log('asking for ' + params.startRow + ' to ' + params.endRow);
         const page = Math.floor(params.startRow / pageSize);
-        fetch(`/admin/http_logs?fromDate=${this.state.startDate}&toDate=${this.state.endDate}&page=${page}&pageSize=${pageSize}`)
+        fetch(
+          `/admin/http_logs?fromDate=${this.state.startDate}&toDate=${this.state.endDate}&page=${page}&pageSize=${pageSize}`
+        )
           .then((resp) => resp.json())
-          .then((data) => params.successCallback(data.results, data.total_items))
-      }
-    }
+          .then((data) => {
+            params.successCallback(data.results, data.total_items);
+          });
+      },
+    };
 
     grid.gridOptions.api.setDatasource(dataSource);
-   }
+    window.onresize = () => {
+      if (grid) {
+        grid.gridOptions.api.sizeColumnsToFit();
+      }
+    };
+  }
 
   render() {
     return html`
       <div class="flex flex-column w-100 pa2">
-        <div id="myGrid" style="height: 500px;" class="ag-theme-astro"></div>
+        <div
+          id="myGrid"
+          style="height: 700px; width: 100%"
+          class="ag-theme-astro"
+        ></div>
       </div>
     `;
   }
-
 }

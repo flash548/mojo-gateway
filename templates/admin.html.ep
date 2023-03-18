@@ -8,7 +8,8 @@
     <link rel="stylesheet" href="/css/toastify.min.css" />
     <link rel="stylesheet" href="/css/custom.css" />
     <script src="/js/ag-grid-community.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <script src="/js/dayjs.min.js"></script>
+    <script src="/js/dayjs-utc.min.js"></script>
     <link rel="stylesheet" href="/css/astro-ag-theme.css" />
   </head>
   <body class="dark-theme">
