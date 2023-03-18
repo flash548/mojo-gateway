@@ -83,20 +83,18 @@ sub get_logs ($self, $page, $page_size, $from_date, $to_date) {
 select * from http_logs 
   where request_time >= ? and request_time <= ? 
   limit ? 
-  offset ? 
-  order by request_time asc
+  offset ?
 QUERY_END
 
   # get the count of the whole resultset
   my $count = $self->db->query(<<QUERY_END, ($from_date, $to_date))->arrays->[0]->[0];
 select count(*) from http_logs 
   where request_time >= ? and request_time <= ? 
-  order by request_time asc
 QUERY_END
 
   return {
     page        => int($page),
-    page_size   => $page_size,
+    page_size   => int($page_size),
     from_date   => $from_date,
     to_date     => $to_date,
     total_items => $count,

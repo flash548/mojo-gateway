@@ -7,14 +7,15 @@
     <link rel="stylesheet" href="/css/tachyons.min.css" />
     <link rel="stylesheet" href="/css/toastify.min.css" />
     <link rel="stylesheet" href="/css/custom.css" />
-    <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@23.2.1/dist/ag-grid-community.min.js"></script>
+    <script src="/js/ag-grid-community.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
     <link rel="stylesheet" href="/css/astro-ag-theme.css" />
   </head>
   <body class="dark-theme">
     <script type="text/javascript" src="/js/toastify-js.js"></script>
     <script type="module">
            import { h, Component, render } from '/js/preact.js';
-           import htm from '/js/htm.js';
+           import htm from '/js/htm.js';           
            const html = htm.bind(h);
 
            function showToast(text, successStatus = false) {

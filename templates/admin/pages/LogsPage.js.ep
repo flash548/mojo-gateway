@@ -1,37 +1,78 @@
+const ISO_STRING_FORMAT = "YYYY-MM-DDTHH:mm:ss";
+
 export class LogsPage extends Component {
 
   constructor(props) {
     super(props);
+    this.state = { 
+      startDate: window.dayjs().subtract(30, 'd').format(ISO_STRING_FORMAT),
+      endDate: window.dayjs().format(ISO_STRING_FORMAT),
+    }
   }
 
   componentDidMount() {
     const columnDefs = [
-      { field: "Date/Time" },
-      { field: "Status" },
-      { field: "Method" },
-      { field: "Path" },
-      { field: "Query Params" },
-      { field: "User" },
-      { field: "User Agent" },
-      { field: "Host" },
-      { field: "Time (ms)" },
+      { field: 'request_time', headerName: "Date/Time" },
+      { field: 'response_status', headerName: "Status" },
+      { field: 'request_method', headerName: "Method" },
+      { field: 'request_path', headerName: "Path" },
+      { field: 'request_query_string', headerName: "Query Params" },
+      { field: 'user_email', headerName: "User" },
+      { field: 'request_user_agent', headerName: "User Agent" },
+      { field: 'request_host', headerName: "Host" },
+      { field: 'time_taken_ms', headerName: "Time (ms)" },
     ];
 
 
     // let the grid know which columns and what data to use
     const gridOptions = {
       columnDefs: columnDefs,
-      rowData: []
+      rowData: [],
+      rowSelection: 'none',
+      domLayout: 'normal',
+      rowModelType: 'infinite',
+      // how big each page in our page cache will be, default is 100
+      cacheBlockSize: 25,
+      // how many extra blank rows to display to the user at the end of the dataset,
+      // which sets the vertical scroll and then allows the grid to request viewing more rows of data.
+      // default is 1, ie show 1 row.
+      cacheOverflowSize: 2,
+      // how many server side requests to send at a time. if user is scrolling lots, then the requests
+      // are throttled down
+      maxConcurrentDatasourceRequests: 1,
+      // how many rows to initially show in the grid. having 1 shows a blank row, so it looks like
+      // the grid is loading from the users perspective (as we have a spinner in the first col)
+      infiniteInitialRowCount: 25,
+      // how many pages to store in cache. default is undefined, which allows an infinite sized cache,
+      // pages are never purged. this should be set for large data to stop your browser from getting
+      // full of data
+      maxBlocksInCache: 10,
     };
 
     const gridDiv = document.querySelector('#myGrid');
-    new agGrid.Grid(gridDiv, gridOptions);
+    const grid = new agGrid.Grid(gridDiv, gridOptions);
+    console.log(grid);
+    grid.gridOptions.api.sizeColumnsToFit();
+    const dataSource = {
+      rowCount: undefined, // behave as infinite scroll
+    
+      getRows: (params) => {
+        const pageSize = 25;
+        console.log('asking for ' + params.startRow + ' to ' + params.endRow);
+        const page = Math.floor(params.startRow / pageSize);
+        fetch(`/admin/http_logs?fromDate=${this.state.startDate}&toDate=${this.state.endDate}&page=${page}&pageSize=${pageSize}`)
+          .then((resp) => resp.json())
+          .then((data) => params.successCallback(data.results, data.total_items))
+      }
+    }
+
+    grid.gridOptions.api.setDatasource(dataSource);
    }
 
   render() {
     return html`
       <div class="flex flex-column w-100 pa2">
-        <div id="myGrid" style="height: 200px; width:100%;" class="ag-theme-astro"></div>
+        <div id="myGrid" style="height: 500px;" class="ag-theme-astro"></div>
       </div>
     `;
   }

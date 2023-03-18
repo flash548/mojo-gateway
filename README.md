@@ -199,6 +199,7 @@ This service's pages are rendered using the Astro UXDS from Rocket Communication
 
 - Mojolicious Framework (https://github.com/mojolicious/mojo) and various other CPAN libraries
 - Astro UXDS from RocketCommunicationsInc (https://github.com/RocketCommunicationsInc)
+- AgGrid Community (v23.2.1) (www.ag-grid.com)
 - Preact.js (https://github.com/preactjs/preact)
 - toastify-js (https://github.com/apvarun/toastify-js)
 - htm (https://github.com/developit/htm)
