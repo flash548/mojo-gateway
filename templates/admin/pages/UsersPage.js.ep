@@ -1,0 +1,89 @@
+export class UsersPage extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      users: [],
+      show: false,
+      selectedUser: {},
+    };
+  }
+
+  componentDidMount() {
+    fetch("/admin/users", {
+      method: "GET",
+    })
+      .then((result) => result.json())
+      .then((users) => this.setState({ users }))
+      .catch((err) => {
+        showToast(err.message);
+      });
+  }
+
+  deleteUser = (user) => {
+    fetch(`/admin/users?email=${user.email.toLowerCase()}`, {
+      method: "DELETE",
+    })
+      .then((result) => {
+        this.setState({
+          users: this.state.users.filter(
+            (u) => u.email.toLowerCase() !== user.email.toLowerCase()
+          ),
+        });
+        showToast("User Deleted", true);
+      })
+      .catch((err) => {
+        showToast(err.message);
+      });
+  };
+
+  render() {
+    return html`
+      <div class="flex flex-column w-100">
+        <div class="flex w-100 justify-between items-center pa2">
+          <h3>Total User Count: ${this.state.users.length}</h3>
+          <button
+            onClick=${() =>
+              this.setState({
+                show: true,
+                action: "Add User",
+                selectedUser: null,
+              })}
+            class="rux-button ma2"
+            type="button"
+          >
+            Add User
+          </button>
+        </div>
+        ${this.state.show &&
+        html`<${EditPanel}
+          title=${this.state.action}
+          backgroundClicked=${() => this.setState({ show: false })}
+          onAddUser=${(user) =>
+            this.setState({ users: [...this.state.users, user] })}
+          onEditUser=${(user) => {
+            const index = this.state.users.findIndex(
+              (elem) => elem.email === user.email
+            );
+            if (index !== undefined) {
+              const updatedState = [...this.state.users];
+              updatedState[index] = user;
+              this.setState({ users: [...updatedState] });
+            }
+          }}
+          selectedUser=${this.state.selectedUser}
+          closeClicked=${() => this.setState({ show: false })}
+        />`}
+        <${UserTable}
+          users=${this.state.users}
+          rowClicked=${(user) =>
+            this.setState({
+              action: "Edit User",
+              show: true,
+              selectedUser: { ...user },
+            })}
+          rowDelete=${this.deleteUser}
+        />
+      </div>
+    `;
+  }
+}

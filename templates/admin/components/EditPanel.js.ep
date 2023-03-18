@@ -45,7 +45,7 @@ export class EditPanel extends Component {
     return html`
       <div
         onClick=${() => props.backgroundClicked && props.backgroundClicked()}
-        class="z-1000 absolute left-0 top-0 w-100 vh-100 bg-black-50"
+        class="z-999 absolute left-0 top-0 w-100 vh-100 bg-black-50"
       >
         <div
           class="pa3 flex flex-column absolute z-2000 right-0 top-0 w-20 vh-100"

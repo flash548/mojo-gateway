@@ -1,4 +1,4 @@
-# Mojolicious Perl tidy settings
+# Mojolicious Perl tidy settings (some modified)
 
 -pbp     # Start with Perl Best Practices
 -w       # Show all warnings
@@ -14,7 +14,7 @@
 -wn      # Weld nested containers
 -isbc    # Don't indent comments without leading space
 -nst     # Don't output to STDOUT
-
+    
 # customization
 
 -ce      # cuddled elses

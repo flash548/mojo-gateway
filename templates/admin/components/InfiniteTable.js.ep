@@ -1,0 +1,103 @@
+// export interface TableState {
+//   totalPages: number;
+//   totalCount: number;
+//   size: number;
+//   page: number;
+//   position: number;
+//   scrollIsOverThres: boolean;
+//   isLoading: boolean;
+// }
+
+// export interface InfiniteDivProps {
+//   'id'?: string;
+//   'data-testid'?: string;
+//   'height'?: number | string;
+//   'width'?: number | string;
+//   'tableState': TableState; // current state as passed in from the parent component
+//   'setTableState': React.Dispatch<React.SetStateAction<TableState>>; // parent component's table state
+//   'children'?: React.ReactNode; // children passed in to render that scrolls
+//   'onScroll'?: (positionPercentage: number) => void; // fires whenever div (table) scrolls
+// }
+
+const InfiniteDiv: React.FC<InfiniteDivProps> = (props: InfiniteDivProps) => {
+  const contentRef = createRef<any>();
+  const scrollerRef = createRef<any>();
+
+  const processScroll = (
+    scrollCB: ((percent: number) => void) | undefined,
+    ref: React.RefObject<any>,
+    tableState: TableState,
+    event: React.UIEvent<HTMLDivElement, UIEvent>
+  ): TableState | undefined => {
+    try {
+      // determine percent scrolled
+      const percent =
+        ((event.target as any).scrollTop / (ref.current.scrollHeight - ref.current.clientHeight)) *
+        100;
+
+      // fire optional scroll callback
+      scrollCB && scrollCB(percent);
+
+      // prevent unncessary firing due to fast scrolling
+      if (percent >= 60 && percent < 90 && tableState.scrollIsOverThres) {
+        return undefined;
+      }
+      if (percent >= 60 && tableState.page + 1 <= tableState.totalPages) {
+        return {
+          ...tableState,
+          position: percent,
+          scrollIsOverThres: true,
+          page: tableState.page + 1,
+        };
+      } else {
+        return {...tableState, position: percent, scrollIsOverThres: false};
+      }
+    } catch (e) {
+      return {...tableState, position: 0};
+    }
+  };
+
+  // scroll changed event handler
+  const onScrolled = (event: React.UIEvent<HTMLDivElement, UIEvent>) => {
+    const result = processScroll(props.onScroll, contentRef, {...props.tableState}, event);
+    if (result) {
+      props.setTableState(result);
+    }
+  };
+
+  return (
+    <div
+      id={`${props.id ?? 'infinite-scroller'}`}
+      data-testid={`${props['data-testid'] ?? 'infinite-scroller'}`}
+      style={{
+        height: props.height ?? 'auto',
+        maxHeight: props.height ?? 'auto',
+        width: props.width ?? '100%',
+        overflowY: 'auto',
+      }}
+      ref={scrollerRef}
+      onScroll={(event) => {
+        if (!props.tableState.isLoading) {
+          onScrolled(event);
+        } else {
+          event.preventDefault();
+        }
+      }}
+    >
+      <div
+        ref={contentRef}
+        id={`${props.id ?? 'infinite-scroller'}-content`}
+        style={{
+          height: props.height ?? 'auto',
+          maxHeight: props.height ?? 'auto',
+          width: props.width ?? '100%',
+          overflowY: 'auto',
+        }}
+      >
+        {props.children}
+      </div>
+    </div>
+  );
+};
+
+export default InfiniteDiv;

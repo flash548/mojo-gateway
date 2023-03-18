@@ -10,12 +10,13 @@ export class TabPanel extends Component {
 
   render() {
     return html`
-      <div class="flex ph2 w-100 justify-between items-center" style=${"background-color: var(--tableHeaderBackgroundColor);"}>
+    <div id="tab-panel-container" class="relative flex flex-column w-100">
+      <div
+        class="flex ph2 w-100 justify-between items-center"
+        style=${"background-color: var(--tableHeaderBackgroundColor);"}
+      >
         <h1>${this.state.title}</h1>
-        
-      <div><a class="mr2" href="/logout">
-        Logout [<%= $email %>]
-      </a></div>
+        <div><a class="mr2" href="/logout"> Logout [<%= $email %>] </a></div>
       </div>
       <div class="flex w-100 justify-start items-start flex-column pa2">
         <div
@@ -39,6 +40,8 @@ export class TabPanel extends Component {
           </ul>
         </div>
       </div>
+      <${this.state.tabs[this.state.activeIndex].component} />
+    </div>
     `;
   }
 }

@@ -1,0 +1,39 @@
+export class LogsPage extends Component {
+
+  constructor(props) {
+    super(props);
+  }
+
+  componentDidMount() {
+    const columnDefs = [
+      { field: "Date/Time" },
+      { field: "Status" },
+      { field: "Method" },
+      { field: "Path" },
+      { field: "Query Params" },
+      { field: "User" },
+      { field: "User Agent" },
+      { field: "Host" },
+      { field: "Time (ms)" },
+    ];
+
+
+    // let the grid know which columns and what data to use
+    const gridOptions = {
+      columnDefs: columnDefs,
+      rowData: []
+    };
+
+    const gridDiv = document.querySelector('#myGrid');
+    new agGrid.Grid(gridDiv, gridOptions);
+   }
+
+  render() {
+    return html`
+      <div class="flex flex-column w-100 pa2">
+        <div id="myGrid" style="height: 200px; width:100%;" class="ag-theme-astro"></div>
+      </div>
+    `;
+  }
+
+}
