@@ -6,6 +6,7 @@ use Constants;
 # our mock Mojo::UserAgent that we inject into the app after bootstrap
 package MockAgent;
 use Test::More;
+
 sub new {
   bless({}, 'MockAgent');
 }
@@ -20,8 +21,8 @@ sub start {
     $res->headers->add($header => $transaction->req->headers->to_hash->{$header});
   }
   $res->headers->add(orig_location => $transaction->req->url);
-  $res->headers->add(location     => '/frontend');
-  $res->headers->add(content_type => 'application/json');
+  $res->headers->add(location      => '/frontend');
+  $res->headers->add(content_type  => 'application/json');
   $tx->res($res);
   return $tx;
 }
@@ -42,7 +43,7 @@ my $config = {
       jwt_claims => {email => '$c->session->{user}->{email}'},
     },
   },
-  default_route       => {uri => "http://localhost:3000/frontend", enable_jwt => 0 },
+  default_route       => {uri => "http://localhost:3000/frontend", enable_jwt => 0},
   password_valid_days => 60,
   password_complexity => {min_length => 8, alphas => 1, numbers => 1, specials => 1, spaces => 0}
 };
@@ -59,12 +60,13 @@ subtest 'Test JWT injected if config says to' => sub {
   $t->get_ok('/s')->status_is(Constants::HTTP_OK)->content_like(qr/login/i, 'Test Login screen landing')
     ->element_exists('[name=username]')->element_exists('[name=password]');
 
-  $t->post_ok('/auth/login', form => {username => 'admin@test.com', password => 'testpass'})->status_is(Constants::HTTP_OK)
-    ->content_unlike(qr/login/i, 'Login OK');
+  $t->post_ok('/auth/login', form => {username => 'admin@test.com', password => 'testpass'})
+    ->status_is(Constants::HTTP_OK)->content_unlike(qr/login/i, 'Login OK');
 
   # test that the JWT was injected as spec'd in the config json
-  $t->get_ok('/s')->status_is(Constants::HTTP_OK)->header_exists('Authorization', 'Authorization header present as expected')
-    ->header_is('location' => '/frontend')->header_is('content_type' => 'application/json')->tap(sub ($t) {
+  $t->get_ok('/s')->status_is(Constants::HTTP_OK)
+    ->header_exists('Authorization', 'Authorization header present as expected')->header_is('location' => '/frontend')
+    ->header_is('content_type' => 'application/json')->tap(sub ($t) {
     my $jwt = Mojo::JWT->new(secret => 'secret')->decode(
       do { my $val = $t->tx->res->headers->authorization; $val =~ s/Bearer\s//g; $val; }
     );
@@ -79,7 +81,8 @@ subtest 'Test JWT injected if config says to' => sub {
   $t->app->config->{strip_headers_to_client} = ['authorization'];
 
   # test that the JWT was injected as spec'd in the config json
-  $t->get_ok('/s')->status_is(Constants::HTTP_OK)->header_exists_not('Authorization', 'Authorization header NOT present as commanded')
+  $t->get_ok('/s')->status_is(Constants::HTTP_OK)
+    ->header_exists_not('Authorization', 'Authorization header NOT present as commanded')
     ->header_is('location' => '/frontend')->header_is('content_type' => 'application/json');
 
 };
@@ -96,8 +99,8 @@ subtest 'check user-agent and other client headers are preserved after proxy' =>
   $t->get_ok('/s')->status_is(Constants::HTTP_OK)->content_like(qr/login/i, 'Test Login screen landing')
     ->element_exists('[name=username]')->element_exists('[name=password]');
 
-  $t->post_ok('/auth/login', form => {username => 'admin@test.com', password => 'testpass'})->status_is(Constants::HTTP_OK)
-    ->content_unlike(qr/login/i, 'Login OK');
+  $t->post_ok('/auth/login', form => {username => 'admin@test.com', password => 'testpass'})
+    ->status_is(Constants::HTTP_OK)->content_unlike(qr/login/i, 'Login OK');
 
   $t->ua->transactor->name("Chrome");
   $t->get_ok('/s')->status_is(Constants::HTTP_OK)->header_is('User-Agent' => 'Chrome', 'Test User Agent is intact');
@@ -119,8 +122,8 @@ subtest 'check that we can do response body transforms' => sub {
   $t->get_ok('/s')->status_is(Constants::HTTP_OK)->content_like(qr/login/i, 'Test Login screen landing')
     ->element_exists('[name=username]')->element_exists('[name=password]');
 
-  $t->post_ok('/auth/login', form => {username => 'admin@test.com', password => 'testpass'})->status_is(Constants::HTTP_OK)
-    ->content_unlike(qr/login/i, 'Login OK');
+  $t->post_ok('/auth/login', form => {username => 'admin@test.com', password => 'testpass'})
+    ->status_is(Constants::HTTP_OK)->content_unlike(qr/login/i, 'Login OK');
 
   # make sure we modified the body as specified for this route
   $t->get_ok('/s')->status_is(Constants::HTTP_OK)->content_like(qr/Mojo Rocks!/);
@@ -129,9 +132,9 @@ subtest 'check that we can do response body transforms' => sub {
 subtest 'check that we can do inbound request path rewrites' => sub {
   my $config2 = $config;
   $config2->{routes}->{'/ui/**'}->{rewrite_path}->{match} = "^/ui";
-  $config2->{routes}->{'/ui/**'}->{rewrite_path}->{with} = "";
-  $config2->{routes}->{'/ui/**'}->{requires_login} = 0;
-  $config2->{routes}->{'/ui/**'}->{uri} = 'http://localhost:3000/frontend';
+  $config2->{routes}->{'/ui/**'}->{rewrite_path}->{with}  = "";
+  $config2->{routes}->{'/ui/**'}->{requires_login}        = 0;
+  $config2->{routes}->{'/ui/**'}->{uri}                   = 'http://localhost:3000/frontend';
   my $t = Test::Mojo->new('Gateway', $config2);
 
   $t->ua->max_redirects(3);
@@ -139,9 +142,7 @@ subtest 'check that we can do inbound request path rewrites' => sub {
   # inject our mocked UserAgent class
   $t->app->proxy_service->ua(MockAgent->new);
 
-  $t->get_ok('/ui/some-page')
-    ->status_is(Constants::HTTP_OK)
-    ->header_is('location' => '/frontend')
+  $t->get_ok('/ui/some-page')->status_is(Constants::HTTP_OK)->header_is('location' => '/frontend')
     ->header_is('orig_location' => 'http://localhost:3000/frontend/some-page');
 };
 

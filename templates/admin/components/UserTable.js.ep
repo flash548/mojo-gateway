@@ -1,58 +1,53 @@
-export class UserTable extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      sortColumn: "email",
-      sortDirection: "asc",
-      searchEmail: "",
-    };
-  }
+export function UserTable(props) {
+  const [state, setState] = useState({
+    sortColumn: "email",
+    sortDirection: "asc",
+    searchEmail: "",
+  });
 
-  sortList = (list) => {
+  function sortList(list) {
     list.sort((a, b) => {
-      if (this.state.sortDirection === "asc") {
-        return a[this.state.sortColumn] > b[this.state.sortColumn] ? 1 : -1;
+      if (state.sortDirection === "asc") {
+        return a[state.sortColumn] > b[state.sortColumn] ? 1 : -1;
       } else {
-        return a[this.state.sortColumn] > b[this.state.sortColumn] ? -1 : 1;
+        return a[state.sortColumn] > b[state.sortColumn] ? -1 : 1;
       }
     });
 
     return list;
-  };
+  }
 
-  render(props) {
-    return html`<div class="pa2">
-      <div class=" flex justify-center mb4">
-        <div class="rux-form-field w-50">
-          <input
-            id="user-search"
-            type="search"
-            placeholder="Search Email" 
-            value=${this.state.searchEmail}
-            class="rux-input"
-            style=${{
-              color: "var(--defaultText) ",
-              backgroundColor: "var(--tableHeaderBackgroundColor) ",
-            }}
-            onInput=${(e) => {
-              console.log(e.target.value);
-              this.setState({ searchEmail: e.target.value });
-            }}
-          />
-        </div>
+  return html`<div class="pa2">
+    <div class=" flex justify-center mb4">
+      <div class="rux-form-field w-50">
+        <input
+          id="user-search"
+          type="search"
+          placeholder="Search Email"
+          value=${state.searchEmail}
+          class="rux-input"
+          style=${{
+            color: "var(--defaultText) ",
+            backgroundColor: "var(--tableHeaderBackgroundColor) ",
+          }}
+          onInput=${(e) => {
+            setState({ ...state, searchEmail: e.target.value });
+          }}
+        />
       </div>
-      <div style=${{ overflowY: 'auto', maxHeight: '75vh' }}>
+    </div>
+    <div style=${{ overflowY: "auto", maxHeight: "75vh" }}>
       <table class="rux-table">
         <tr>
           <th class="flex items-center">
-            Email${" "}${this.state.sortDirection === "asc"
+            Email${" "}${state.sortDirection === "asc"
               ? html`<${Icon}
                   icon="arrow-upward"
-                  onClick=${() => this.setState({ sortDirection: "desc" })}
+                  onClick=${() => setState({ ...state, sortDirection: "desc" })}
                 />`
               : html`<${Icon}
                   icon="arrow-downward"
-                  onClick=${() => this.setState({ sortDirection: "asc" })}
+                  onClick=${() => setState({ ...state, sortDirection: "asc" })}
                 />`}
           </th>
           <th class="tc">Admin?</th>
@@ -62,8 +57,8 @@ export class UserTable extends Component {
           <th></th>
           <th></th>
         </tr>
-        ${this.sortList(props.users)
-          .filter((user) => user.email.includes(this.state.searchEmail))
+        ${sortList(props.users)
+          .filter((user) => user.email.includes(state.searchEmail))
           .map(
             (user) => html`
               <tr>
@@ -106,7 +101,6 @@ export class UserTable extends Component {
             `
           )}
       </table>
-      </div>
-    </div>`;
-  }
+    </div>
+  </div>`;
 }

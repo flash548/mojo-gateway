@@ -145,6 +145,8 @@ sub startup ($self) {
   # Logs fetch routes
   if ($self->config->{enable_logging}) {
     $admin_routes->get('/http_logs' => sub ($c) { $self->admin_controller->get_http_logs($c) });
+  } else {
+    $admin_routes->get('/http_logs' => sub ($c) { $c->render(json => { message => "Feature Disabled"}, status => Constants::HTTP_FORBIDDEN ); });
   }
 
   # these routes are just for authenticated (logged in users)

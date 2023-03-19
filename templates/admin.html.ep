@@ -37,22 +37,18 @@
              }).showToast();
            }
 
-           class App extends Component {
-             constructor(props) {
-               super(props);
-             }
-
-             render() {
-               return html`
-                 <div class="flex flex-column w-100">
-                   <${TabPanel} title="Admin" tabs=${[
-                     { title: 'Users', component: UsersPage },
-                     { title: 'Logs', component: LogsPage },
-                   ]}
-                   />
-                 </div>
-             `;
-           }
+           function App() {
+            return html`
+              <div class="flex flex-column w-100">
+                <${TabPanel} title="Admin" tabs=${[
+                  { title: 'Users', component: UsersPage },
+                  <% if ($c->config->{enable_logging}) { %>
+                  { title: 'Logs', component: LogsPage },
+                  <% } %>
+                ]}
+                />
+              </div>
+          `;
          }
 
          %= include 'admin/components/UserTable', format => 'js'

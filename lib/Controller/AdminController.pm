@@ -163,14 +163,14 @@ sub get_http_logs ($self, $c) {
   # default to page size 25
   my $page_size = $c->req->param('pageSize') // 25;
 
-  my $status_code = $c->req->param('statusCode');
-  my $user_email = $c->req->param('email');
-  my $path = $c->req->param('path');
-  my $request_method = $c->req->param('method');
-  my $user_agent = $c->req->param('userAgent');
-  my $request_host = $c->req->param('hostname');
-  my $query = $c->req->param('queryString');
-  my $time_taken_less = $c->req->param('timeLessThan');
+  my $status_code        = $c->req->param('statusCode');
+  my $user_email         = $c->req->param('email');
+  my $path               = $c->req->param('path');
+  my $request_method     = $c->req->param('method');
+  my $user_agent         = $c->req->param('userAgent');
+  my $request_host       = $c->req->param('hostname');
+  my $query              = $c->req->param('queryString');
+  my $time_taken_less    = $c->req->param('timeLessThan');
   my $time_taken_greater = $c->req->param('timeGreaterThan');
 
   # validate all this stuff
@@ -189,22 +189,12 @@ sub get_http_logs ($self, $c) {
       status => Constants::HTTP_BAD_REQUEST
     );
   } else {
-    my $results = $self->log_service->get_logs($c, 
-    $page, 
-    $page_size, 
-    $from_date, 
-    $to_date,
-    $status_code, 
-    $user_email, 
-    $path, 
-    $request_method,
-    $user_agent,
-    $request_host,
-    $query,
-    $time_taken_less,
-    $time_taken_greater
-      );
-    $c->render(json => $results) if $results; # if results is falsy then weve already errored out and responded
+    my $results = $self->log_service->get_logs(
+      $c,            $page,       $page_size,       $from_date,      $to_date,
+      $status_code,  $user_email, $path,            $request_method, $user_agent,
+      $request_host, $query,      $time_taken_less, $time_taken_greater
+    );
+    $c->render(json => $results) if $results;    # if results is falsy then weve already errored out and responded
   }
 
 }

@@ -1,21 +1,17 @@
-export class TabPanel extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      title: props.title,
-      activeIndex: 0,
-      tabs: [...props.tabs],
-    };
-  }
+export function TabPanel(props) {
+  const [state, setState] = useState({
+    title: props.title,
+    activeIndex: 0,
+    tabs: [...props.tabs],
+  });
 
-  render() {
-    return html`
+  return html`
     <div id="tab-panel-container" class="relative flex flex-column w-100">
       <div
         class="flex ph2 w-100 justify-between items-center"
         style=${"background-color: var(--tableHeaderBackgroundColor);"}
       >
-        <h1>${this.state.title}</h1>
+        <h1>${state.title}</h1>
         <div><a class="mr2" href="/logout"> Logout [<%= $email %>] </a></div>
       </div>
       <div class="flex w-100 justify-start items-start flex-column pa2">
@@ -24,15 +20,16 @@ export class TabPanel extends Component {
           style=${{ height: "auto" }}
         >
           <ul>
-            ${this.state.tabs.map(
+            ${state.tabs.map(
               (tab, index) =>
                 html`<li
                   class="rux-tab"
-                  style=${index === this.state.activeIndex
+                  id=${`tab-item-${tab.title}`}
+                  style=${index === state.activeIndex
                     ? "border-bottom: 5px solid var(--primary);"
                     : ""}
                 >
-                  <a onClick=${() => this.setState({ activeIndex: index })}
+                  <a onClick=${() => setState({ ...state, activeIndex: index })}
                     >${tab.title}</a
                   >
                 </li>`
@@ -40,8 +37,7 @@ export class TabPanel extends Component {
           </ul>
         </div>
       </div>
-      <${this.state.tabs[this.state.activeIndex].component} />
+      <${state.tabs[state.activeIndex].component} />
     </div>
-    `;
-  }
+  `;
 }

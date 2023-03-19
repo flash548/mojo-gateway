@@ -158,7 +158,6 @@ export default function LogsPage() {
         if (searchState.hostname !== undefined) {
           searchReq += `&hostname=${searchState.hostname}`;
         }
-    
         if (searchState.query !== undefined) {
           searchReq += `&queryString=${searchState.query}`
         }
@@ -170,10 +169,20 @@ export default function LogsPage() {
         if (searchState.requestGreaterThan !== undefined) {
           searchReq += `&timeGreaterThan=${searchState.requestGreaterThan}`;
         }
+
+        let status = undefined;
         fetch(searchReq)
-          .then((resp) => resp.json())
+          .then((resp) => { status = resp.status; return resp.json(); })
           .then((data) => {
-            params.successCallback(data.results, data.total_items);
+            if (status === 200) {
+              params.successCallback(data.results, data.total_items);
+            } else {
+              showToast(data.message);
+              params.successCallback([], 0);
+            }
+          })
+          .catch((error) => {
+            showToast(error.message);
           });
       },
     };

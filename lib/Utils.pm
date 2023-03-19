@@ -1,4 +1,5 @@
 package Utils;
+use Time::Piece;
 use feature qw/signatures/;
 
 
@@ -21,7 +22,15 @@ sub detect_gremlins ($in) {
 
 # validates the str is of format yyyy-mm-ddThh:mm:ss (without the Zulu postfix)
 sub validate_ISO_string ($str) {
-  return 1 if $str =~ m/^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d$/;
+  return 0 if $str !~ m/^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d$/;
+
+  eval {
+    Time::Piece->strptime($str, "%Y-%m-%dT%H:%M:%S");
+  };
+
+  if ($@) { return 0; }
+
+  return 1;
 }
 
 # validates a user object's certain fields to be valid
