@@ -35,5 +35,13 @@ subtest 'Check User Object' => sub {
   ok Utils::validate_user_object({email => 'james@test.com', password => '1'}, 1), 'Valid user object 2';
 };
 
+subtest 'Check ISO String Format' => sub {
+
+  ok !Utils::validate_ISO_string(undef), 'Date check - 1';
+  ok !Utils::validate_ISO_string(''), 'Date check - 1';
+  ok !Utils::validate_ISO_string('2022-31-31T00:00:00'), 'Date check - 3';
+  ok Utils::validate_ISO_string('2022-03-31T00:00:00'), 'Date check - 4';
+};
+
 
 done_testing();
