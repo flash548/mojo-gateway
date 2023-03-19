@@ -167,7 +167,7 @@ sub get_http_logs ($self, $c) {
   my $user_email = $c->req->param('email');
   my $path = $c->req->param('path');
   my $request_method = $c->req->param('method');
-  my $user_agent = $c->req->param('user_agent');
+  my $user_agent = $c->req->param('userAgent');
   my $request_host = $c->req->param('hostname');
   my $query = $c->req->param('queryString');
   my $time_taken_less = $c->req->param('timeLessThan');

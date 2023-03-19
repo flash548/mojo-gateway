@@ -122,8 +122,6 @@ sub startup ($self) {
     );
   }
 
-  #
-  #
   # all routes from here-on require authenticated user
   my $authorized_routes = $self->routes->under('/' => sub ($c) { $self->user_service->check_user_status($c) });
 
@@ -142,10 +140,16 @@ sub startup ($self) {
   $admin_routes->post('/users' => sub ($c) { $self->admin_controller->add_user_post($c) });
   $admin_routes->put('/users' => sub ($c) { $self->admin_controller->update_user_put($c) });
   $admin_routes->get('/users'     => sub ($c) { $self->admin_controller->users_get($c) });
-  $admin_routes->get('/http_logs' => sub ($c) { $self->admin_controller->get_http_logs($c) });
   $admin_routes->delete('/users' => sub ($c) { $self->admin_controller->users_delete($c) });
 
-  # show the password change form
+  # Logs fetch routes
+  if ($self->config->{enable_logging}) {
+    $admin_routes->get('/http_logs' => sub ($c) { $self->admin_controller->get_http_logs($c) });
+  }
+
+  # these routes are just for authenticated (logged in users)
+  #
+  # show the password change form 
   $authorized_routes->get('/auth/password/change' => sub ($c) { $self->user_controller->password_change_form_get($c) });
   $authorized_routes->post('/auth/password/change' => sub ($c) { $self->user_controller->password_change_post($c) });
 

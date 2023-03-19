@@ -173,13 +173,13 @@ QUERY_END
   }
 
   if (defined($request_method_is)) {
-    push @bindings, '%' . lc $request_method_is . '%';
-    $query .= " and lower(request_method) like ?"
+    push @bindings, lc $request_method_is;
+    $query .= " and lower(request_method) = ?"
   }
 
   if (defined($user_agent_contains)) {
     push @bindings, '%' . lc $user_agent_contains . '%';
-    $query .= " and lower(user_agent) like ?"
+    $query .= " and lower(request_user_agent) like ?"
   }
 
   if (defined($request_host_contains)) {

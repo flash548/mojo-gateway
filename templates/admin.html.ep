@@ -16,6 +16,7 @@
     <script type="text/javascript" src="/js/toastify-js.js"></script>
     <script type="module">
            import { h, Component, render } from '/js/preact.js';
+           import { useState, useEffect, useRef } from '/js/hooks.js';
            import htm from '/js/htm.js';           
            const html = htm.bind(h);
 

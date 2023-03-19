@@ -1,20 +1,17 @@
 const ISO_STRING_FORMAT = "YYYY-MM-DDTHH:mm:ss";
+const ISO_STRING_FORMAT_NO_SECS = "YYYY-MM-DDTHH:mm";
+const PAGE_SIZE=25;
 window.dayjs.extend(window.dayjs_plugin_utc);
 
-export class LogsPage extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      startDate: window
-        .dayjs()
-        .utc()
-        .subtract(30, "d")
-        .format(ISO_STRING_FORMAT),
-      endDate: window.dayjs().utc().format(ISO_STRING_FORMAT),
-    };
-  }
+export default function LogsPage() { 
+  const [searchState, setSearchState] = useState({ 
+    startDate: window.dayjs().utc().subtract(30, "d"),
+    endDate: window.dayjs().utc(),
+    statusCode: undefined,
+  });
+  const [grid, setGrid] = useState(null);
 
-  getStatusIcon(statusValue) {
+  function getStatusIcon(statusValue) {
     function getIcon(status) {
       if (status >= 200 && status < 300) return "-3rem";
       else if (status >= 300 && status < 400) return "-4rem";
@@ -35,7 +32,7 @@ export class LogsPage extends Component {
           "/></span>`;
   }
 
-  componentDidMount() {
+  useEffect(() => {
     const columnDefs = [
       {
         field: "request_time",
@@ -50,7 +47,7 @@ export class LogsPage extends Component {
         suppressMovable: true,
         cellRenderer: (params) => {
           const tag = document.createElement("span");
-          tag.innerHTML = this.getStatusIcon(params.value);
+          tag.innerHTML = getStatusIcon(params.value);
           return tag;
         },
       },
@@ -81,26 +78,99 @@ export class LogsPage extends Component {
       rowSelection: "none",
       domLayout: "normal",
       rowModelType: "infinite",
-      cacheBlockSize: 25,
+      cacheBlockSize: PAGE_SIZE,
       cacheOverflowSize: 2,
       maxConcurrentDatasourceRequests: 1,
-      infiniteInitialRowCount: 25,
+      infiniteInitialRowCount: PAGE_SIZE,
       maxBlocksInCache: 10,
-      suppressCellSelection: true
+      suppressCellSelection: true,
     };
 
     const gridDiv = document.querySelector("#myGrid");
-    const grid = new agGrid.Grid(gridDiv, gridOptions);
-    grid.gridOptions.api.sizeColumnsToFit();
+    const gridVal = new agGrid.Grid(gridDiv, gridOptions);
+    gridVal.gridOptions.api.sizeColumnsToFit();
+
+    
+    window.onresize = () => {
+      if (gridVal) {
+        gridVal.gridOptions.api.sizeColumnsToFit();
+      }
+    };
+
+    setGrid(gridVal);
+
+  }, []);
+
+  useEffect(() => {
+    onSearch();
+  }, [grid]);
+
+  function resetState() {
+    setSearchState({ 
+      startDate: window.dayjs().utc().subtract(30, "d"),
+      endDate: window.dayjs().utc(),
+      statusCode: undefined,
+      email: undefined,
+      path: undefined,
+      method: undefined,
+      userAgent: undefined,
+      hostname: undefined,
+      query: undefined,
+      requestLessThan: undefined,
+      requestGreaterThan: undefined,
+    });
+  }
+
+  function onSearch() {
+    if (grid == null) return;
 
     const dataSource = {
       rowCount: undefined,
       getRows: (params) => {
-        const pageSize = 25;
+        const pageSize = PAGE_SIZE;
         const page = Math.floor(params.startRow / pageSize);
-        fetch(
-          `/admin/http_logs?fromDate=${this.state.startDate}&toDate=${this.state.endDate}&page=${page}&pageSize=${pageSize}`
-        )
+        let searchReq = `/admin/http_logs?fromDate=${searchState.startDate.format(
+          ISO_STRING_FORMAT
+        )}&toDate=${searchState.endDate.format(
+          ISO_STRING_FORMAT
+        )}&page=${page}&pageSize=${pageSize}`;
+    
+        if (searchState.statusCode !== undefined) {
+          searchReq += `&statusCode=${searchState.statusCode}`;
+        }
+    
+        if (searchState.email !== undefined) {
+          searchReq += `&email=${searchState.email}`;
+        }
+    
+        if (searchState.path !== undefined) {
+          searchReq += `&path=${searchState.path}`;
+        }
+    
+        if (searchState.method !== undefined) {
+          searchReq += `&method=${searchState.method}`;
+        }
+    
+        if (searchState.userAgent !== undefined) {
+          searchReq += `&userAgent=${searchState.userAgent}`;
+        }
+    
+        if (searchState.hostname !== undefined) {
+          searchReq += `&hostname=${searchState.hostname}`;
+        }
+    
+        if (searchState.query !== undefined) {
+          searchReq += `&queryString=${searchState.query}`
+        }
+    
+        if (searchState.requestLessThan !== undefined) {
+          searchReq += `&timeLessThan=${searchState.requestLessThan}`;
+        }
+    
+        if (searchState.requestGreaterThan !== undefined) {
+          searchReq += `&timeGreaterThan=${searchState.requestGreaterThan}`;
+        }
+        fetch(searchReq)
           .then((resp) => resp.json())
           .then((data) => {
             params.successCallback(data.results, data.total_items);
@@ -109,22 +179,166 @@ export class LogsPage extends Component {
     };
 
     grid.gridOptions.api.setDatasource(dataSource);
-    window.onresize = () => {
-      if (grid) {
-        grid.gridOptions.api.sizeColumnsToFit();
-      }
-    };
   }
 
-  render() {
-    return html`
-      <div class="flex flex-column w-100 pa2">
-        <div
-          id="myGrid"
-          style="height: 700px; width: 100%"
-          class="ag-theme-astro"
-        ></div>
-      </div>
-    `;
-  }
+  return html`
+    <div class="flex flex-column w-100 pa2">
+      <form
+        onSubmit=${(e) => {
+          e.preventDefault();
+          onSearch();
+        }}
+      >
+        <div class="flex flex-row">
+          <div class="rux-form-field mb2 mr2">
+            <label for="logs-from-date" class="rux-form-field__label"
+              >From Date</label
+            >
+            <input
+              id="logs-from-date-input"
+              type="datetime-local"
+              style="color: var(--defaultText); background-color: var(--tableHeaderBackgroundColor);"
+              value=${searchState.startDate.format(ISO_STRING_FORMAT_NO_SECS)}
+              onInput=${(e) => setSearchState({ ...searchState, startDate: dayjs(e.target.value) })}
+            />
+          </div>
+          <div class="rux-form-field mb2 mr2">
+            <label for="logs-to-date" class="rux-form-field__label"
+              >To Date</label
+            >
+            <input
+              id="logs-to-date-input"
+              type="datetime-local"
+              style="color: var(--defaultText); background-color: var(--tableHeaderBackgroundColor);"
+              value=${searchState.endDate.format(ISO_STRING_FORMAT_NO_SECS)}
+              onInput=${(e) => setSearchState({ ...searchState, endDate: dayjs(e.target.value) })}
+            />
+          </div>
+          <div class="rux-form-field mb2 mr2" style="max-width: 100px">
+            <label for="logs-status-code" class="rux-form-field__label"
+              >Status Code</label
+            >
+            <input
+              id="logs-status-code-input"
+              type="text"
+              style="color: var(--defaultText); background-color: var(--tableHeaderBackgroundColor);"
+              value=${searchState.statusCode ?? ''}
+              onInput=${(e) => setSearchState({ ...searchState, statusCode: e.target.value })}
+            />
+          </div>
+          <div class="rux-form-field mb2 mr2" style="max-width:175px">
+            <label for="logs-status-email" class="rux-form-field__label"
+              >User Email Contains</label
+            >
+            <input
+              id="logs-status-email-input"
+              type="input"
+              style="color: var(--defaultText); background-color: var(--tableHeaderBackgroundColor);"
+              value=${searchState.email ?? ''}
+              onInput=${(e) => setSearchState({ ...searchState, email: e.target.value })}
+            />
+          </div>
+          <div class="rux-form-field mb2 mr2" style="max-width:175px">
+            <label for="logs-method" class="rux-form-field__label"
+              >Request Method</label
+            >
+            <input
+              id="logs-method-input"
+              type="input"
+              style="color: var(--defaultText); background-color: var(--tableHeaderBackgroundColor);"
+              value=${searchState.method ?? ''}
+              onInput=${(e) => setSearchState({ ...searchState, method: e.target.value })}
+            />
+          </div>
+        </div>
+        <div class="flex flex-row">
+          <div class="rux-form-field mb2 mr2">
+            <label for="logs-path" class="rux-form-field__label"
+              >Request Path Contains</label
+            >
+            <input
+              id="logs-path-input"
+              type="input"
+              style="color: var(--defaultText); background-color: var(--tableHeaderBackgroundColor);"
+              value=${searchState.path ?? ''}
+              onInput=${(e) => setSearchState({ ...searchState, path: e.target.value })}
+            />
+          </div>
+          <div class="rux-form-field mb2 mr2">
+            <label for="logs-query" class="rux-form-field__label"
+              >Query Params Contains</label
+            >
+            <input
+              id="logs-query-input"
+              type="input"
+              style="color: var(--defaultText); background-color: var(--tableHeaderBackgroundColor);"
+              value=${searchState.query ?? ''}
+              onInput=${(e) => setSearchState({ ...searchState, query: e.target.value })}
+            />
+          </div>
+          <div class="rux-form-field mb2 mr2" style="max-width: 175px">
+            <label for="logs-user-agent" class="rux-form-field__label"
+              >User Agent Contains</label
+            >
+            <input
+              id="logs-user-agent-input"
+              type="input"
+              style="color: var(--defaultText); background-color: var(--tableHeaderBackgroundColor);"
+              value=${searchState.userAgent ?? ''}
+              onInput=${(e) => setSearchState({ ...searchState, userAgent: e.target.value })}
+            />
+          </div>
+          <div class="rux-form-field mb2 mr2" style="max-width: 175px">
+            <label for="logs-host" class="rux-form-field__label"
+              >Hostname Contains</label
+            >
+            <input
+              id="logs-host-input"
+              type="input"
+              style="color: var(--defaultText); background-color: var(--tableHeaderBackgroundColor);"
+              value=${searchState.hostname ?? ''}
+              onInput=${(e) => setSearchState({ ...searchState, hostname: e.target.value })}
+            />
+          </div>
+        </div>
+        <div class="flex flex-row">
+            <div class="rux-form-field mb2 mr2">
+              <label for="logs-less-than" class="rux-form-field__label"
+                >Request Time (ms) Less Than</label
+              >
+              <input
+                id="logs-less-than-input"
+                type="text"
+                style="color: var(--defaultText); background-color: var(--tableHeaderBackgroundColor);"
+                value=${searchState.requestLessThan ?? ''}
+                onInput=${(e) => setSearchState({ ...searchState, requestLessThan: e.target.value })}
+              />
+            </div>
+            <div class="rux-form-field mb2 mr2">
+              <label for="logs-greater-than" class="rux-form-field__label"
+                >Request Time (ms) Greater Than</label
+              >
+              <input
+                id="logs-greater-than-input"
+                type="text"
+                style="color: var(--defaultText); background-color: var(--tableHeaderBackgroundColor);"
+                value=${searchState.requestGreaterThan ?? ''}
+                onInput=${(e) => setSearchState({ ...searchState, requestGreaterThan: e.target.value })}
+              />
+            </div>
+            <div class="mb2 mr2 flex flex-column justify-end">
+              <input type="submit" class="flex rux-button">Search</input>
+            </div>
+            <div class="mb2 mr2 flex flex-column justify-end">
+              <button type="button" onClick=${() => resetState()} class="flex rux-button rux-button--outline">Reset</button>
+            </div>
+        </div>
+      </form>
+      <div
+        id="myGrid"
+        style="height: 700px; width: 100%"
+        class="ag-theme-astro"
+      />
+    </div>
+  `;
 }
