@@ -70,7 +70,13 @@ sub startup ($self) {
     }
   );
 
-  $self->db_conn->auto_migrate(1)->migrations->from_file('./migrations/data.sql');
+  if (!$ENV{test} && defined($config->{db_type}) && $config->{db_type} eq 'sqlite') {
+    $self->db_conn->auto_migrate(1)->migrations->from_file('./migrations/data.sql');
+  } elsif (!defined($config->{test}) && $config->{db_type} eq 'pg') {
+    $self->db_conn->auto_migrate(1)->migrations->from_file('./migrations/data_pg.sql');
+  } else {
+    $self->db_conn->auto_migrate(1)->migrations->from_file('./migrations/data.sql');
+  }
 
   $self->user_service(Service::UserService->new(db => $self->db_conn->db, config => $config));
   $self->http_log_service(Service::HttpLogService->new(db => $self->db_conn->db, config => $config));

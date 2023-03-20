@@ -298,10 +298,21 @@ sub get_gmstamp {
   return gmtime()->datetime;
 }
 
+# TODO: re-consider refactor for this... find when the `%Y-%m-%dT%H:%M:%S` vs
+# `%Y-%m-%d %H:%M:%S` format presents itself.  I think its on brand new accounts?
+#
 # returns time since given date stamp (in ISO 8601 format) in days
 sub get_days_since_gmstamp ($self, $time) {
+  say $time;
   if (defined($self->config->{db_type}) && $self->config->{db_type} eq 'pg') {
-    return (gmtime() - Time::Piece->strptime($time, "%Y-%m-%d %H:%M:%S"))->days;
+
+    # consider if time format is of varying formats for pg
+    if ($time =~ m/^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d$/) {
+      return (gmtime() - Time::Piece->strptime($time, "%Y-%m-%dT%H:%M:%S"))->days;
+    } else {
+      return (gmtime() - Time::Piece->strptime($time, "%Y-%m-%d %H:%M:%S"))->days;
+    }
+
   } else {
     return (gmtime() - Time::Piece->strptime($time, "%Y-%m-%dT%H:%M:%SZ"))->days;
   }

@@ -72,6 +72,36 @@ subtest 'Test Logging Feature - Enabled' => sub {
     ->json_is('/message' => 'To date does not appear to be the format yyyy-MM-ddThh:mm:ss', 'Bad To Date');
 };
 
+subtest 'Test Ignore Paths for Logging' => sub {
+
+  my $logging_enabled_options = $options;
+  $logging_enabled_options->{enable_logging} = 1;
+  $logging_enabled_options->{logging_ignore_paths} = [ '/everyone' ];
+
+  my $t = Test::Mojo->new('Gateway', $logging_enabled_options);
+  $t->ua->max_redirects(3);
+
+  $t->post_ok('/auth/login', form => {username => 'admin@test.com', password => 'testpass'})
+    ->status_is(Constants::HTTP_OK)->content_unlike(qr/login/i, 'Login as admin user');
+
+  # check that we get a 200 on logs endpoint
+  $t->get_ok('/admin/http_logs')->status_is(Constants::HTTP_OK, 'Http Logs Endpoint Available')
+    ->json_has('/results', 'Allowed Endpoint');
+
+  $t->get_ok('/everyone');
+
+  # custom function for inspecting http logs response
+  my $json_coll_has = sub ($t, $value, $desc = '') {
+    my $result = grep { $_->{request_path} =~ m/$value/ } $t->tx->res->json->{results}->@*;
+    return $t->success(is($result, 0, $desc));
+  };
+
+  # check that request to /everyone isn't in the http logs and ignored
+  $t->get_ok('/admin/http_logs')->status_is(Constants::HTTP_OK)
+    ->json_has('/results', 'Allowed Endpoint')
+    ->$json_coll_has('/everyone', 'No occurances of /everyone path request');
+};
+
 
 
 done_testing();

@@ -6,7 +6,7 @@
   "admin_user": "<%= $ENV{ADMIN_USER} // 'admin@admin.com' %>",
   "admin_pass": "<%= $ENV{ADMIN_PASS} // 'password' %>",
   "db_type": "<%= $ENV{DB_TYPE} // 'sqlite' %>",
-  "db_uri": "<%= $ENV{DB_URI} // 'postgresql://somedude:password@localhost:5432/test' %>",
+  "db_uri": "<%= $ENV{DB_URI} // 'postgresql://somedude:password@localhost:5432/database' %>",
   "cookie_name": "<%= $ENV{COOKIE_NAME} // 'mojolicious' %>",
   "strip_headers_to_client": [ "authorization", "server", "x-powered-by"  ],
   "jwt_secret": "<%= $ENV{SECRET} // 'change_this' %>",
