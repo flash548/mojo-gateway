@@ -5,116 +5,62 @@
     <link rel="stylesheet" href="/css/astro.min.css" />
     <link rel="stylesheet" href="/css/astro-icons.min.css" />
     <link rel="stylesheet" href="/css/tachyons.min.css" />
-    <link rel="stylesheet" href="/css/toastify.min.css">
+    <link rel="stylesheet" href="/css/toastify.min.css" />
     <link rel="stylesheet" href="/css/custom.css" />
+    <script src="/js/ag-grid-community.min.js"></script>
+    <script src="/js/dayjs.min.js"></script>
+    <script src="/js/dayjs-utc.min.js"></script>
+    <link rel="stylesheet" href="/css/astro-ag-theme.css" />
   </head>
   <body class="dark-theme">
     <script type="text/javascript" src="/js/toastify-js.js"></script>
     <script type="module">
-        import { h, Component, render } from '/js/preact.js';
-        import htm from '/js/htm.js';
-        const html = htm.bind(h);
+           import { h, Component, render } from '/js/preact.js';
+           import { useState, useEffect, useRef } from '/js/hooks.js';
+           import htm from '/js/htm.js';           
+           const html = htm.bind(h);
 
-        function showToast(text, successStatus = false) {
-          Toastify({
-            text: text || "Unknown",
-            duration: 3000,
-            newWindow: true,
-            close: true,
-            gravity: "top", 
-            position: "center",
-            stopOnFocus: true,
-            style: {
-              background: successStatus ? "var(--statusDarkNormal)" : "var(--statusDarkCritical)",
-              color: "var(--colorBlack)",
-            },
-            onClick: function(){}
-          }).showToast();
-        }
+           function showToast(text, successStatus = false) {
+             Toastify({
+               text: text || "Unknown",
+               duration: 3000,
+               newWindow: true,
+               close: true,
+               gravity: "top",
+               position: "center",
+               stopOnFocus: true,
+               style: {
+                 background: successStatus ? "var(--statusDarkNormal)" : "var(--statusDarkCritical)",
+                 color: "var(--colorBlack)",
+               },
+               onClick: function(){}
+             }).showToast();
+           }
 
-        class App extends Component {
-          constructor(props) {
-            super(props);
-            this.state = {
-              users: [],
-              show: false,
-              selectedUser: {},
-            };
-          }
-
-          componentDidMount() {
-            fetch("/admin/users", {
-              method: "GET",
-            })
-              .then((result) => result.json())
-              .then((users) => this.setState({ users }))
-              .catch((err) => {showToast(err.message)});
-          }
-
-          deleteUser = (user) => {
-            fetch(`/admin/users?email=${user.email.toLowerCase()}`, {
-              method: "DELETE",
-            })
-            .then((result) => {
-              this.setState({ users: this.state.users.filter(u => u.email.toLowerCase() !== user.email.toLowerCase())});
-              showToast("User Deleted", true);
-            })
-            .catch((err) => { showToast(err.message)} );
-          }
-
-          render() {
+           function App() {
             return html`
-              <div class="relative flex flex-column w-100">
+              <div class="flex flex-column w-100">
                 <${TabPanel} title="Admin" tabs=${[
-                  { title: "Users" }]}
-                />
-                <div class="flex w-100 justify-between items-center pa2">
-                  <h3>Total User Count: ${this.state.users.length}</h3>
-                  <button
-                    onClick=${() => this.setState({
-                      show: true,
-                      action: 'Add User',
-                      selectedUser: null })}
-                    class="rux-button ma2"
-                    type="button"
-                  >
-                    Add User
-                  </button>
-                </div>
-                ${ this.state.show &&
-                  html`<${EditPanel}
-                    title=${this.state.action}
-                    backgroundClicked=${() => this.setState({ show: false })}
-                    onAddUser=${(user) => this.setState({ users: [...this.state.users, user ]})}
-                    onEditUser=${(user) => {
-                      const index = this.state.users.findIndex((elem) => elem.email === user.email);
-                      if (index !== undefined) {
-                        const updatedState = [ ...this.state.users ];
-                        updatedState[index] = user;
-                        this.setState({ users: [ ...updatedState ]});
-                      }
-                    }}
-                    selectedUser=${this.state.selectedUser}
-                    closeClicked=${() => this.setState({ show: false })} />` 
-                }
-                <${UserTable}
-                  users=${this.state.users}
-                  rowClicked=${(user) => this.setState({ action: 'Edit User', show: true, selectedUser: {...user} })}
-                  rowDelete=${this.deleteUser}
+                  { title: 'Users', component: UsersPage },
+                  <% if ($c->config->{enable_logging}) { %>
+                  { title: 'Logs', component: LogsPage },
+                  <% } %>
+                ]}
                 />
               </div>
           `;
-        }
-      }
+         }
 
-      %= include 'admin/UserTable', format => 'js'
-      %= include 'admin/TabPanel', format => 'js'
-      %= include 'admin/EditPanel', format => 'js'
-      %= include 'admin/Icon', format => 'js'
-      %= include 'admin/Status', format => 'js'
-      %= include 'admin/Checkbox', format => 'js'
+         %= include 'admin/components/UserTable', format => 'js'
+         %= include 'admin/components/TabPanel', format => 'js'
+         %= include 'admin/components/EditPanel', format => 'js'
+         %= include 'admin/components/Icon', format => 'js'
+         %= include 'admin/components/Status', format => 'js'
+         %= include 'admin/components/Checkbox', format => 'js'
+         %= include 'admin/pages/UsersPage', format => 'js'
+         %= include 'admin/pages/LogsPage', format => 'js'
 
-      render(html`<${App} />`, document.body);
+         render(html`<${App} />`, document.body);
     </script>
   </body>
 </html>

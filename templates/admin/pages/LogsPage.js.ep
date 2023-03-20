@@ -1,0 +1,353 @@
+const ISO_STRING_FORMAT = "YYYY-MM-DDTHH:mm:ss";
+const ISO_STRING_FORMAT_NO_SECS = "YYYY-MM-DDTHH:mm";
+const PAGE_SIZE=25;
+window.dayjs.extend(window.dayjs_plugin_utc);
+
+export default function LogsPage() { 
+  const [searchState, setSearchState] = useState({ 
+    startDate: window.dayjs().utc().subtract(30, "d"),
+    endDate: window.dayjs().utc(),
+    statusCode: undefined,
+  });
+  const [grid, setGrid] = useState(null);
+
+  function getStatusIcon(statusValue) {
+    function getIcon(status) {
+      if (status >= 200 && status < 300) return "-3rem";
+      else if (status >= 300 && status < 400) return "-4rem";
+      else if (status >= 400 && status < 500) return "-2rem";
+      else if (status >= 500) return "-1rem";
+      else return "-5rem";
+    }
+    return `<span class="flex items-center w-100 h-100 flex-row">
+    ${" "}<span class="flex">${statusValue}</span><span style="height: 1rem;
+            width: 1rem;
+            margin: 0.125rem;
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position-x: ${getIcon(statusValue)};
+            background-image: var(
+              --statusSymbols,
+              url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAAAgCAMAAABzRoe3AAAAgVBMVEUAAAD/tQv/swL/OTn/PDzftl9W8QBW8AAtzP8v0P9Z9gD/tAP/uQb/tAItzf8tzf+eqK2ep60uzP9X8QCfqK4uzf8uzf9X8QAuzP9X8ACeqK4vzP9Y8QAuzv9Y8gCeqq4wz/8xzv9A1f9Y8QD/tAP86DpW8AD/swL/ODgtzP+ep63tgXPUAAAAJXRSTlMAGNfAQAv98/IdG8Io52zz8+DZ2dC9trabm4F+a05OQjAaDG6dAJcYcwAAAfdJREFUWMPtmNlygkAQRScyrBp3QTZFNBj8/w9MCGI3dBOHMg9jyvOmVFnn1HUSULx4LibjN/HMTN7Po2cu+PY/cwUfPYg2XhKsbHsVJJ5gcaf+cjZb+lN3qJjxyWIw/lAwNMALreKKFTIJh215Y3sYFiD5AEn9oWBowM4uEPau65A6JcJJ/2ACg/pDwdCAo1W0sI6ixbTsMH18Akn9oWBgwK7xh4LWBmlJSB+dwCD+pEA5wLMLgo3OwcGpvzhxludZfH1Bz4EZrefzdWSqTSCJPylQDggLhhA+oD6/G7d+5W7qk9yV3C8uPyz2KhMYxJ8UKAd4Fhdg3SZwa3/4wLrA7fhfbuwVJpDEnxQoByQFS9I6wQ7ydR16js0FBCzMuxMY1J8WqAYEfEDQXPcr3RjbxNU7vsBEF0R0dwJJ/LkCxYAVH7Bqri8r3QzbZNU7S4FZ44B1/ymgA4zPfZwUA2w+wG6uzyrdHMvk1TszgZnjgLmgyL4T8Dbq8R+bWgUIgw4ABby/Vl8hIckAUMD7a3WIYQIYgC0Af73+jOIJpKAF1F+vf2QwAQxAC7C/ZrcSeAIpegvAX7ObOZgABiAF2F+322mYAAagBeCv2wMNTEAGIAWVv3aPlDABDMAW1P7aPdQjDBiALaj89ftZBSGl+LXgZIoXL/4VXyptNwzuHR/QAAAAAElFTkSuQmCC'));
+          "/></span>`;
+  }
+
+  useEffect(() => {
+    const columnDefs = [
+      {
+        field: "request_time",
+        headerName: "Date/Time",
+        resizable: true,
+        suppressSizeToFit: true,
+        suppressMovable: true,
+      },
+      {
+        field: "response_status",
+        headerName: "Status",
+        suppressMovable: true,
+        cellRenderer: (params) => {
+          const tag = document.createElement("span");
+          tag.innerHTML = getStatusIcon(params.value);
+          return tag;
+        },
+      },
+      { field: "request_method", headerName: "Method", suppressMovable: true },
+      { field: "request_path", headerName: "Path", suppressMovable: true },
+      {
+        field: "request_query_string",
+        headerName: "Query Params",
+        suppressMovable: true,
+      },
+      { field: "user_email", headerName: "User", suppressMovable: true },
+      {
+        field: "request_user_agent",
+        headerName: "User Agent",
+        suppressMovable: true,
+      },
+      { field: "request_host", headerName: "Host", suppressMovable: true },
+      {
+        field: "time_taken_ms",
+        headerName: "Time (ms)",
+        suppressMovable: true,
+      },
+    ];
+
+    const gridOptions = {
+      columnDefs: columnDefs,
+      rowData: [],
+      rowSelection: "none",
+      domLayout: "normal",
+      rowModelType: "infinite",
+      cacheBlockSize: PAGE_SIZE,
+      cacheOverflowSize: 2,
+      maxConcurrentDatasourceRequests: 1,
+      infiniteInitialRowCount: PAGE_SIZE,
+      maxBlocksInCache: 10,
+      suppressCellSelection: true,
+    };
+
+    const gridDiv = document.querySelector("#myGrid");
+    const gridVal = new agGrid.Grid(gridDiv, gridOptions);
+    gridVal.gridOptions.api.sizeColumnsToFit();
+
+    
+    window.onresize = () => {
+      if (gridVal) {
+        gridVal.gridOptions.api.sizeColumnsToFit();
+      }
+    };
+
+    setGrid(gridVal);
+
+  }, []);
+
+  useEffect(() => {
+    onSearch();
+  }, [grid]);
+
+  function resetState() {
+    setSearchState({ 
+      startDate: window.dayjs().utc().subtract(30, "d"),
+      endDate: window.dayjs().utc(),
+      statusCode: undefined,
+      email: undefined,
+      path: undefined,
+      method: undefined,
+      userAgent: undefined,
+      hostname: undefined,
+      query: undefined,
+      requestLessThan: undefined,
+      requestGreaterThan: undefined,
+    });
+  }
+
+  function onSearch() {
+    if (grid == null) return;
+
+    const dataSource = {
+      rowCount: undefined,
+      getRows: (params) => {
+        const pageSize = PAGE_SIZE;
+        const page = Math.floor(params.startRow / pageSize);
+        let searchReq = `/admin/http_logs?fromDate=${searchState.startDate.format(
+          ISO_STRING_FORMAT
+        )}&toDate=${searchState.endDate.format(
+          ISO_STRING_FORMAT
+        )}&page=${page}&pageSize=${pageSize}`;
+    
+        if (searchState.statusCode !== undefined) {
+          searchReq += `&statusCode=${searchState.statusCode}`;
+        }
+    
+        if (searchState.email !== undefined) {
+          searchReq += `&email=${searchState.email}`;
+        }
+    
+        if (searchState.path !== undefined) {
+          searchReq += `&path=${searchState.path}`;
+        }
+    
+        if (searchState.method !== undefined) {
+          searchReq += `&method=${searchState.method}`;
+        }
+    
+        if (searchState.userAgent !== undefined) {
+          searchReq += `&userAgent=${searchState.userAgent}`;
+        }
+    
+        if (searchState.hostname !== undefined) {
+          searchReq += `&hostname=${searchState.hostname}`;
+        }
+        if (searchState.query !== undefined) {
+          searchReq += `&queryString=${searchState.query}`
+        }
+    
+        if (searchState.requestLessThan !== undefined) {
+          searchReq += `&timeLessThan=${searchState.requestLessThan}`;
+        }
+    
+        if (searchState.requestGreaterThan !== undefined) {
+          searchReq += `&timeGreaterThan=${searchState.requestGreaterThan}`;
+        }
+
+        let status = undefined;
+        fetch(searchReq)
+          .then((resp) => { status = resp.status; return resp.json(); })
+          .then((data) => {
+            if (status === 200) {
+              params.successCallback(data.results, data.total_items);
+            } else {
+              showToast(data.message);
+              params.successCallback([], 0);
+            }
+          })
+          .catch((error) => {
+            showToast(error.message);
+          });
+      },
+    };
+
+    grid.gridOptions.api.setDatasource(dataSource);
+  }
+
+  return html`
+    <div class="flex flex-column w-100 pa2">
+      <form
+        onSubmit=${(e) => {
+          e.preventDefault();
+          onSearch();
+        }}
+      >
+        <div class="flex flex-row">
+          <div class="rux-form-field mb2 mr2">
+            <label for="logs-from-date" class="rux-form-field__label"
+              >From Date</label
+            >
+            <input
+              id="logs-from-date-input"
+              type="datetime-local"
+              style="color: var(--defaultText); background-color: var(--tableHeaderBackgroundColor);"
+              value=${searchState.startDate.format(ISO_STRING_FORMAT_NO_SECS)}
+              onInput=${(e) => setSearchState({ ...searchState, startDate: dayjs(e.target.value) })}
+            />
+          </div>
+          <div class="rux-form-field mb2 mr2">
+            <label for="logs-to-date" class="rux-form-field__label"
+              >To Date</label
+            >
+            <input
+              id="logs-to-date-input"
+              type="datetime-local"
+              style="color: var(--defaultText); background-color: var(--tableHeaderBackgroundColor);"
+              value=${searchState.endDate.format(ISO_STRING_FORMAT_NO_SECS)}
+              onInput=${(e) => setSearchState({ ...searchState, endDate: dayjs(e.target.value) })}
+            />
+          </div>
+          <div class="rux-form-field mb2 mr2" style="max-width: 100px">
+            <label for="logs-status-code" class="rux-form-field__label"
+              >Status Code</label
+            >
+            <input
+              id="logs-status-code-input"
+              type="text"
+              style="color: var(--defaultText); background-color: var(--tableHeaderBackgroundColor);"
+              value=${searchState.statusCode ?? ''}
+              onInput=${(e) => setSearchState({ ...searchState, statusCode: e.target.value })}
+            />
+          </div>
+          <div class="rux-form-field mb2 mr2" style="max-width:175px">
+            <label for="logs-status-email" class="rux-form-field__label"
+              >User Email Contains</label
+            >
+            <input
+              id="logs-status-email-input"
+              type="input"
+              style="color: var(--defaultText); background-color: var(--tableHeaderBackgroundColor);"
+              value=${searchState.email ?? ''}
+              onInput=${(e) => setSearchState({ ...searchState, email: e.target.value })}
+            />
+          </div>
+          <div class="rux-form-field mb2 mr2" style="max-width:175px">
+            <label for="logs-method" class="rux-form-field__label"
+              >Request Method</label
+            >
+            <input
+              id="logs-method-input"
+              type="input"
+              style="color: var(--defaultText); background-color: var(--tableHeaderBackgroundColor);"
+              value=${searchState.method ?? ''}
+              onInput=${(e) => setSearchState({ ...searchState, method: e.target.value })}
+            />
+          </div>
+        </div>
+        <div class="flex flex-row">
+          <div class="rux-form-field mb2 mr2">
+            <label for="logs-path" class="rux-form-field__label"
+              >Request Path Contains</label
+            >
+            <input
+              id="logs-path-input"
+              type="input"
+              style="color: var(--defaultText); background-color: var(--tableHeaderBackgroundColor);"
+              value=${searchState.path ?? ''}
+              onInput=${(e) => setSearchState({ ...searchState, path: e.target.value })}
+            />
+          </div>
+          <div class="rux-form-field mb2 mr2">
+            <label for="logs-query" class="rux-form-field__label"
+              >Query Params Contains</label
+            >
+            <input
+              id="logs-query-input"
+              type="input"
+              style="color: var(--defaultText); background-color: var(--tableHeaderBackgroundColor);"
+              value=${searchState.query ?? ''}
+              onInput=${(e) => setSearchState({ ...searchState, query: e.target.value })}
+            />
+          </div>
+          <div class="rux-form-field mb2 mr2" style="max-width: 175px">
+            <label for="logs-user-agent" class="rux-form-field__label"
+              >User Agent Contains</label
+            >
+            <input
+              id="logs-user-agent-input"
+              type="input"
+              style="color: var(--defaultText); background-color: var(--tableHeaderBackgroundColor);"
+              value=${searchState.userAgent ?? ''}
+              onInput=${(e) => setSearchState({ ...searchState, userAgent: e.target.value })}
+            />
+          </div>
+          <div class="rux-form-field mb2 mr2" style="max-width: 175px">
+            <label for="logs-host" class="rux-form-field__label"
+              >Hostname Contains</label
+            >
+            <input
+              id="logs-host-input"
+              type="input"
+              style="color: var(--defaultText); background-color: var(--tableHeaderBackgroundColor);"
+              value=${searchState.hostname ?? ''}
+              onInput=${(e) => setSearchState({ ...searchState, hostname: e.target.value })}
+            />
+          </div>
+        </div>
+        <div class="flex flex-row">
+            <div class="rux-form-field mb2 mr2">
+              <label for="logs-less-than" class="rux-form-field__label"
+                >Request Time (ms) Less Than</label
+              >
+              <input
+                id="logs-less-than-input"
+                type="text"
+                style="color: var(--defaultText); background-color: var(--tableHeaderBackgroundColor);"
+                value=${searchState.requestLessThan ?? ''}
+                onInput=${(e) => setSearchState({ ...searchState, requestLessThan: e.target.value })}
+              />
+            </div>
+            <div class="rux-form-field mb2 mr2">
+              <label for="logs-greater-than" class="rux-form-field__label"
+                >Request Time (ms) Greater Than</label
+              >
+              <input
+                id="logs-greater-than-input"
+                type="text"
+                style="color: var(--defaultText); background-color: var(--tableHeaderBackgroundColor);"
+                value=${searchState.requestGreaterThan ?? ''}
+                onInput=${(e) => setSearchState({ ...searchState, requestGreaterThan: e.target.value })}
+              />
+            </div>
+            <div class="mb2 mr2 flex flex-column justify-end">
+              <input type="submit" class="flex rux-button">Search</input>
+            </div>
+            <div class="mb2 mr2 flex flex-column justify-end">
+              <button type="button" onClick=${() => resetState()} class="flex rux-button rux-button--outline">Reset</button>
+            </div>
+        </div>
+      </form>
+      <div
+        id="myGrid"
+        style="height: 700px; width: 100%"
+        class="ag-theme-astro"
+      />
+    </div>
+  `;
+}

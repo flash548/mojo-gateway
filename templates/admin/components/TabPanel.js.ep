@@ -1,0 +1,43 @@
+export function TabPanel(props) {
+  const [state, setState] = useState({
+    title: props.title,
+    activeIndex: 0,
+    tabs: [...props.tabs],
+  });
+
+  return html`
+    <div id="tab-panel-container" class="relative flex flex-column w-100">
+      <div
+        class="flex ph2 w-100 justify-between items-center"
+        style=${"background-color: var(--tableHeaderBackgroundColor);"}
+      >
+        <h1>${state.title}</h1>
+        <div><a class="mr2" href="/logout"> Logout [<%= $email %>] </a></div>
+      </div>
+      <div class="flex w-100 justify-start items-start flex-column pa2">
+        <div
+          class="ml4 flex w-100 justify-start rux-tabs"
+          style=${{ height: "auto" }}
+        >
+          <ul>
+            ${state.tabs.map(
+              (tab, index) =>
+                html`<li
+                  class="rux-tab"
+                  id=${`tab-item-${tab.title}`}
+                  style=${index === state.activeIndex
+                    ? "border-bottom: 5px solid var(--primary);"
+                    : ""}
+                >
+                  <a onClick=${() => setState({ ...state, activeIndex: index })}
+                    >${tab.title}</a
+                  >
+                </li>`
+            )}
+          </ul>
+        </div>
+      </div>
+      <${state.tabs[state.activeIndex].component} />
+    </div>
+  `;
+}

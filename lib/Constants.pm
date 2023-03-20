@@ -1,5 +1,7 @@
 package Constants;
 
+# package to alias HTTP statuses to plain english
+
 use constant HTTP_OK => 200;
 use constant HTTP_CREATED => 201;
 use constant HTTP_NO_RESPONSE => 204;

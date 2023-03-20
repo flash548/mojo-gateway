@@ -4,10 +4,11 @@ use Time::Piece;
 
 use Password::Utils;
 use Constants;
+use Utils;
 
 has 'db';
 has 'config';
-has 'password_util'           => sub { Password::Utils->new };
+has 'password_util' => sub { Password::Utils->new };
 
 # other fields/keys allowed to POST/PUT besides the the email field (otherwise they're ignored)
 has 'user_obj_allowed_fields' => sub { ['reset_password', 'first_name', 'last_name', 'is_admin', 'user_id'] };
@@ -51,8 +52,7 @@ sub check_user_status ($self, $c) {
 # user authenticated OK or already-authenticated, check password expiry if we've defined
 #  that setting and its more than 0 days
   if (
-    (
-      $c->session->{user}->{reset_password}
+    ( $c->session->{user}->{reset_password}
       || (defined($self->config->{password_valid_days}) && $self->config->{password_valid_days} > 0)
     )
     && $c->req->url !~ /auth\/password\/change/
@@ -178,7 +178,7 @@ sub update_user ($self, $c) {
 
   if ($self->db->select('users', undef, {email => lc $c->req->json->{email}})->hashes->size) {
 
-    my $existing_user     = $self->_get_user(lc($c->req->json->{email}));
+    my $existing_user = $self->_get_user(lc($c->req->json->{email}));
 
     # now go through the keys of the payload and update the existing_user record
     # if new field wasn't undefined - that way we dont always have to provide password updates if we're not changing it
@@ -189,9 +189,10 @@ sub update_user ($self, $c) {
 
         # check if its a password field
         if ($key eq 'password' && defined($user->{password}) && $user->{password} ne '') {
-          $existing_user->{password}   = $self->password_util->encode_password($user->{password});          
+          $existing_user->{password}   = $self->password_util->encode_password($user->{password});
           $existing_user->{last_reset} = $self->get_gmstamp();
-        } elsif (grep { $key =~ m/$_/} @{$self->user_obj_allowed_fields}) {
+        } elsif (grep { $key =~ m/$_/ } @{$self->user_obj_allowed_fields}) {
+
           # if its an allowed field for the body model, then add it to the existing_user obj
           # we're about to persist...
           $existing_user->{$key} = $user->{$key};
@@ -211,38 +212,29 @@ sub update_user ($self, $c) {
   }
 }
 
-sub _trim { return $_[0] =~ s/^\s+|\s+$//gr; }
-sub _detect_gremlins {
-  my $in = shift;
-
-  # no cntrl chars
-  return 1 if $in =~ m/\p{cntrl}/;
-
-  # no non-ascii
-  return 1 if $in =~ m/[^\p{ascii}]/;
-  
-}
-
 sub do_password_change ($self, $c) {
 
   my $existing_password = $c->req->param('current-password');
-  my $new_password = $c->req->param('new-password');
-  my $retyped_password = $c->req->param('retyped-new-password');
+  my $new_password      = $c->req->param('new-password');
+  my $retyped_password  = $c->req->param('retyped-new-password');
 
-  if (!$existing_password || !$new_password || !$retyped_password)
-  {
+  if (!$existing_password || !$new_password || !$retyped_password) {
     $c->flash({return_to => $c->flash('return_to'), error_msg => 'Required fields not present or they were blank'});
     $c->redirect_to('/auth/password/change',);
   }
 
   # check for empty pass after trim (even though it would fail complexity anyways...)
-  elsif (_trim($existing_password) eq '' || _trim($new_password) eq '' || _trim($retyped_password) eq '') {
+  elsif (Utils::trim($existing_password) eq ''
+    || Utils::trim($new_password) eq ''
+    || Utils::trim($retyped_password) eq '') {
     $c->flash({return_to => $c->flash('return_to'), error_msg => 'Passwords cannot be whitespace'});
     $c->redirect_to('/auth/password/change',);
   }
 
   # check for non-ascii
-  elsif (_detect_gremlins($existing_password) || _detect_gremlins($new_password) || _detect_gremlins($retyped_password)) {
+  elsif (Utils::detect_gremlins($existing_password)
+    || Utils::detect_gremlins($new_password)
+    || Utils::detect_gremlins($retyped_password)) {
     $c->flash({return_to => $c->flash('return_to'), error_msg => 'Passwords cannot contain non-ascii characters'});
     $c->redirect_to('/auth/password/change',);
   }
@@ -254,7 +246,7 @@ sub do_password_change ($self, $c) {
   }
 
   # see if the existing password was correct
-  elsif ( !$existing_password
+  elsif (!$existing_password
     || !$self->password_util->check_pass($self->_get_user($c->session->{user}->{email})->{password}, $existing_password)
   ) {
     $c->flash({return_to => $c->flash('return_to'), error_msg => 'Existing Password Incorrect'});
@@ -284,8 +276,7 @@ sub do_password_change ($self, $c) {
 
     $self->db->update(
       "users",
-      {
-        password       => $self->password_util->encode_password($new_password),
+      { password       => $self->password_util->encode_password($new_password),
         reset_password => 0,
         last_reset     => $self->get_gmstamp()
       },
@@ -307,10 +298,21 @@ sub get_gmstamp {
   return gmtime()->datetime;
 }
 
+# TODO: re-consider refactor for this... find when the `%Y-%m-%dT%H:%M:%S` vs
+# `%Y-%m-%d %H:%M:%S` format presents itself.  I think its on brand new accounts?
+#
 # returns time since given date stamp (in ISO 8601 format) in days
 sub get_days_since_gmstamp ($self, $time) {
+  say $time;
   if (defined($self->config->{db_type}) && $self->config->{db_type} eq 'pg') {
-    return (gmtime() - Time::Piece->strptime($time, "%Y-%m-%d %H:%M:%S"))->days;
+
+    # consider if time format is of varying formats for pg
+    if ($time =~ m/^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d$/) {
+      return (gmtime() - Time::Piece->strptime($time, "%Y-%m-%dT%H:%M:%S"))->days;
+    } else {
+      return (gmtime() - Time::Piece->strptime($time, "%Y-%m-%d %H:%M:%S"))->days;
+    }
+
   } else {
     return (gmtime() - Time::Piece->strptime($time, "%Y-%m-%dT%H:%M:%SZ"))->days;
   }

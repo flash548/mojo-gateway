@@ -1,3 +1,5 @@
+-- For postgres specifics
+
 -- 1 up
 CREATE TABLE users (
   email VARCHAR UNIQUE PRIMARY KEY,
@@ -28,8 +30,8 @@ ALTER TABLE users
 
 -- 6 up
 CREATE TABLE http_logs (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_email VARCHAR, 
+  id bigserial,
+  user_email VARCHAR(255), 
   response_status INTEGER,
   request_path VARCHAR(255),
   request_query_string VARCHAR(255),
@@ -37,6 +39,5 @@ CREATE TABLE http_logs (
   request_method VARCHAR(10),
   request_host VARCHAR(255),
   request_user_agent VARCHAR(255),
-  time_taken_ms INTEGER,
-  foreign key(user_email) references users(email)
+  time_taken_ms DECIMAL
 );

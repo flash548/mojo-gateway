@@ -1,7 +1,7 @@
 package Password::Utils;
 use Mojo::Base -base, -signatures;
 
-use Crypt::Bcrypt qw/bcrypt bcrypt_check/;
+use Crypt::Bcrypt             qw/bcrypt bcrypt_check/;
 use Data::Entropy::Algorithms qw(rand_bits);
 
 sub check_complexity ($self, $new_password, $params) {

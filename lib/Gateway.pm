@@ -6,12 +6,14 @@ use Mojo::SQLite;
 use lib qw(./lib);
 use Service::UserService;
 use Service::Proxy;
+use Service::HttpLogService;
 use Controller::AdminController;
 use Controller::UserController;
 use Constants;
 
 has 'user_service';
 has 'proxy_service';
+has 'http_log_service';
 has 'admin_controller';
 has 'user_controller';
 
@@ -19,6 +21,13 @@ sub startup ($self) {
   my $config = $self->plugin('JSONConfig');
   $self->secrets([$config->{secret}]);
   $self->sessions->cookie_name($config->{cookie_name} // 'mojolicious');
+  $self->hook(
+    before_dispatch => sub ($c) {
+
+      # start the http trace
+      $self->http_log_service->start_trace($c);
+    }
+  );
 
   $self->hook(
     after_dispatch => sub ($c) {
@@ -27,6 +36,9 @@ sub startup ($self) {
       if ($config->{strip_headers_to_client}) {
         $c->res->headers->remove(lc $_) for (@{$config->{strip_headers_to_client}});
       }
+
+      # log the http trace
+      $self->http_log_service->end_trace($c);
     }
   );
 
@@ -44,11 +56,13 @@ sub startup ($self) {
 
         # turn off pg-server-side prepares since in prod we're running this
         # thing in prefork mode.  If not pre-fork, shouldn't matter as to this
-        # setting's value
+        # setting's value, otherwise we get multiple Mojo::Gateway instances telling Postgres to
+        # prepare identical, already stored statements causing exceptions...
         $db_handle->db->dbh->{pg_server_prepare} = 0;
         return $db_handle;
       } else {
 
+        # in-mem, volatile database
         # for tests and future tests...
         state $db_handle = Mojo::SQLite->new(':temp:');
         return $db_handle;
@@ -56,11 +70,19 @@ sub startup ($self) {
     }
   );
 
-  $self->db_conn->auto_migrate(1)->migrations->from_file('./migrations/data.sql');
+  if (!$ENV{test} && defined($config->{db_type}) && $config->{db_type} eq 'sqlite') {
+    $self->db_conn->auto_migrate(1)->migrations->from_file('./migrations/data.sql');
+  } elsif (!defined($config->{test}) && $config->{db_type} eq 'pg') {
+    $self->db_conn->auto_migrate(1)->migrations->from_file('./migrations/data_pg.sql');
+  } else {
+    $self->db_conn->auto_migrate(1)->migrations->from_file('./migrations/data.sql');
+  }
 
   $self->user_service(Service::UserService->new(db => $self->db_conn->db, config => $config));
+  $self->http_log_service(Service::HttpLogService->new(db => $self->db_conn->db, config => $config));
   $self->proxy_service(Service::Proxy->new(config => $config, ua => Mojo::UserAgent->new));
-  $self->admin_controller(Controller::AdminController->new(user_service => $self->user_service));
+  $self->admin_controller(
+    Controller::AdminController->new(user_service => $self->user_service, log_service => $self->http_log_service));
   $self->user_controller(Controller::UserController->new(user_service => $self->user_service));
 
   # create the admin user if it doesn't exist
@@ -103,10 +125,10 @@ sub startup ($self) {
       cb => sub ($c) {
         $self->proxy_service->proxy($c, 'default_route');
       }
-   );
+    );
   }
 
-  # all routes from here-on require authentication
+  # all routes from here-on require authenticated user
   my $authorized_routes = $self->routes->under('/' => sub ($c) { $self->user_service->check_user_status($c) });
 
   # the routes under '/admin' requires admin-type, authenticated users
@@ -123,11 +145,19 @@ sub startup ($self) {
   $admin_routes->get('/' => sub ($c) { $self->admin_controller->admin_page_get($c) });
   $admin_routes->post('/users' => sub ($c) { $self->admin_controller->add_user_post($c) });
   $admin_routes->put('/users' => sub ($c) { $self->admin_controller->update_user_put($c) });
-  $admin_routes->get('/users' => sub ($c) { $self->admin_controller->users_get($c) });
-  $admin_routes->get('/users' => sub ($c) { $self->admin_controller->users_get($c) });
+  $admin_routes->get('/users'     => sub ($c) { $self->admin_controller->users_get($c) });
   $admin_routes->delete('/users' => sub ($c) { $self->admin_controller->users_delete($c) });
 
-  # show the password change form
+  # Logs fetch routes
+  if ($self->config->{enable_logging}) {
+    $admin_routes->get('/http_logs' => sub ($c) { $self->admin_controller->get_http_logs($c) });
+  } else {
+    $admin_routes->get('/http_logs' => sub ($c) { $c->render(json => { message => "Feature Disabled"}, status => Constants::HTTP_FORBIDDEN ); });
+  }
+
+  # these routes are just for authenticated (logged in users)
+  #
+  # show the password change form 
   $authorized_routes->get('/auth/password/change' => sub ($c) { $self->user_controller->password_change_form_get($c) });
   $authorized_routes->post('/auth/password/change' => sub ($c) { $self->user_controller->password_change_post($c) });
 
@@ -142,6 +172,8 @@ sub startup ($self) {
       }
     );
   }
+
+  # for if our default route is a locked down route requiring an authenticated user
   if (!defined($config->{default_route}->{requires_login}) || $config->{default_route}->{requires_login}) {
 
     # catch-all/default routes - routes to the default_routes specified in the config json

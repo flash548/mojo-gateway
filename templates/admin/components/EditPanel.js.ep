@@ -1,0 +1,196 @@
+export function EditPanel(props) {
+  const isEdit = props.selectedUser !== null;
+
+  const [state, setState] = useState({
+    isSubmitting: false,
+    resultMessage: "",
+    selectedUser: { ...props.selectedUser } || {
+      first_name: "",
+      last_name: "",
+      email: "",
+      password: "",
+      is_admin: false,
+      user_id: 0,
+    },
+  });
+
+  /**
+   * Posts (or Puts) user data to the backend - so it'll CREATE or UPDATE
+   * basically
+   * @param userObj - user object
+   */
+  async function postUser(userObj) {
+    setState({ ...state, isSubmitting: true });
+
+    let result = await fetch("/admin/users", {
+      method: isEdit ? "PUT" : "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ...state.selectedUser }),
+    });
+    let body = await result.json();
+    if (result.status === 201 || result.status === 200) {
+      isEdit ? userObj.onEditUser(body) : userObj.onAddUser(body);
+      setState({ ...state, isSubmitting: false, resultMessage: "Success!" });
+      showToast(isEdit ? "User Updated" : "User Created", true);
+    } else {
+      setState({ ...state, isSubmitting: false, resultMessage: "Failed!" });
+      showToast(body.message);
+    }
+  }
+
+  return html`
+    <div
+      onClick=${() => props.backgroundClicked && props.backgroundClicked()}
+      class="z-999 absolute left-0 top-0 w-100 vh-100 bg-black-50"
+    >
+      <div
+        class="pa3 flex flex-column absolute z-2000 right-0 top-0 w-20 vh-100"
+        style="background-color: var(--surfaceElements);"
+        onClick=${(e) => {
+          e.stopPropagation();
+        }}
+      >
+        <div class="flex flex-row w-100 justify-between">
+          <h2>${props.title}</h2>
+          <${Icon}
+            icon="close"
+            onClick=${() => props.closeClicked && props.closeClicked()}
+          />
+        </div>
+        <div class="mt3 flex flex-column justify-start items-start">
+          <form
+            onSubmit=${(e) => {
+              e.preventDefault();
+              postUser(props);
+            }}
+          >
+            <div class="rux-form-field mb2">
+              <label for="user-first_name" class="rux-form-field__label"
+                >First Name</label
+              >
+              <input
+                id="user-first_name"
+                type="text"
+                value=${state.selectedUser.first_name}
+                onInput=${(e) =>
+                  setState({
+                    ...state,
+                    selectedUser: {
+                      ...state.selectedUser,
+                      first_name: e.target.value,
+                    },
+                  })}
+              />
+            </div>
+            <div class="rux-form-field mb2">
+              <label for="user-last_name" class="rux-form-field__label"
+                >Last Name</label
+              >
+              <input
+                id="user-last_name"
+                type="text"
+                value=${state.selectedUser.last_name}
+                onInput=${(e) =>
+                  setState({
+                    ...state,
+                    selectedUser: {
+                      ...state.selectedUser,
+                      last_name: e.target.value,
+                    },
+                  })}
+              />
+            </div>
+            <div class="rux-form-field mb2">
+              <label for="user-email" class="rux-form-field__label"
+                >User Email</label
+              >
+              <input
+                id="user-email"
+                type="email"
+                value=${state.selectedUser.email}
+                onInput=${(e) =>
+                  setState({
+                    ...state,
+                    selectedUser: {
+                      ...state.selectedUser,
+                      email: e.target.value,
+                    },
+                  })}
+              />
+            </div>
+            <div class="rux-form-field mb2">
+              <label for="user-password" class="rux-form-field__label"
+                >User Password</label
+              >
+              <input
+                id="user-password"
+                type="password"
+                value=${state.selectedUser.password}
+                onInput=${(e) =>
+                  setState({
+                    ...state,
+                    selectedUser: {
+                      ...state.selectedUser,
+                      password: e.target.value,
+                    },
+                  })}
+              />
+            </div>
+            <div class="rux-form-field mb2">
+              <label for="user-user_id" class="rux-form-field__label"
+                >User ID</label
+              >
+              <input
+                id="user-user_id"
+                value=${state.selectedUser.user_id}
+                onInput=${(e) =>
+                  setState({
+                    ...state,
+                    selectedUser: {
+                      ...state.selectedUser,
+                      user_id: e.target.value,
+                    },
+                  })}
+              />
+            </div>
+            <div class="rux-form-field mb2">
+              <${Checkbox}
+                id="user-reset"
+                label="Expire Password?"
+                checked=${state.selectedUser.reset_password}
+                onClick=${(checked) =>
+                  setState({
+                    ...state,
+                    selectedUser: {
+                      ...state.selectedUser,
+                      reset_password: checked,
+                    },
+                  })}
+              />
+            </div>
+            <div class="rux-form-field mb2">
+              <${Checkbox}
+                id="user-admin"
+                label="Is Admin?"
+                checked=${state.selectedUser.is_admin}
+                onClick=${(checked) =>
+                  setState({
+                    ...state,
+                    selectedUser: { ...state.selectedUser, is_admin: checked },
+                  })}
+              />
+            </div>
+            <button
+              type="submit"
+              disabled=${state.isSubmitting}
+              class="rux-button ma2"
+            >
+              ${state.isSubmitting ? "Sending..." : "Submit"}
+            </button>
+          </form>
+          <span>${state.resultMessage}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
