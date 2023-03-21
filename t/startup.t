@@ -51,8 +51,6 @@ subtest 'Catches missing (required) config key' => sub {
     Test::Mojo->new('Gateway', $options,);
   };
 
-  diag $@;
-
   ok $@, 'Test that App failed to launch';
   ok grep { $_ =~ m!/admin_user: Missing property! } $@;
 };
