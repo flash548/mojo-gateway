@@ -2,6 +2,7 @@ package Gateway;
 use Mojo::Base 'Mojolicious', -signatures;
 use Mojo::Pg;
 use Mojo::SQLite;
+use JSON::Validator::Joi qw(joi);
 
 use lib qw(./lib);
 use Service::UserService;
@@ -11,14 +12,21 @@ use Controller::AdminController;
 use Controller::UserController;
 use Constants;
 
+binmode STDOUT, ":encoding(UTF-8)";
+
 has 'user_service';
 has 'proxy_service';
 has 'http_log_service';
 has 'admin_controller';
 has 'user_controller';
 
+# we'll check the config file routes do not match these as we do not
+# want these to get overriden - ever
+my $reserved_routes = [ '/admin', '/auth', '/login', '/logout' ];
+
 sub startup ($self) {
   my $config = $self->plugin('JSONConfig');
+  $self->validate_config();
   $self->secrets([$config->{secret}]);
   $self->sessions->cookie_name($config->{cookie_name} // 'mojolicious');
   $self->hook(
@@ -98,6 +106,10 @@ sub startup ($self) {
     next
       if !defined($config->{routes}->{$route_spec}->{requires_login})
       || $config->{routes}->{$route_spec}->{requires_login};
+
+    # check not overwriting reserved routes
+    die "One of the configured routes is a reserved route" if grep { $route_spec =~ m/^$_/ } $reserved_routes->@*;
+
     $self->routes->any(
       $route_spec => sub ($c) {
         $self->proxy_service->proxy($c, $route_spec);
@@ -166,6 +178,10 @@ sub startup ($self) {
     next
       if defined($config->{routes}->{$route_spec}->{requires_login})
       && !$config->{routes}->{$route_spec}->{requires_login};
+
+    # check not overwriting reserved routes
+    die "One of the configured routes is a reserved route" if grep { $route_spec =~ m/^$_/ } $reserved_routes->@*;
+
     $authorized_routes->any(
       $route_spec => sub ($c) {
         $self->proxy_service->proxy($c, $route_spec);
@@ -188,6 +204,74 @@ sub startup ($self) {
       }
     );
   }
+}
+
+sub validate_config($self) {
+  my $config = joi->object->props(
+    login_page_title   => joi->string,
+    enable_logging => joi->boolean,
+    logging_ignore_paths  => joi->array,
+    secret => joi->string->min(1)->required,
+    admin_user => joi->email->required,
+    admin_pass => joi->string(1)->required,
+    db_type => joi->string->enum(["pg", "sqlite"]),
+    db_uri => joi->string,
+    cookie_name => joi->string,
+    strip_headers_to_client => joi->array,
+    jwt_secret => joi->string->required,
+    routes => joi->object->required,
+    password_valid_days => joi->number->positive->required,
+    password_complexity => joi->object->required,
+    default_route => joi->object->required,
+    test => joi->boolean,
+    config_override => joi->boolean # this is put in by Mojo on config overrides in testing
+  );
+
+  say "Validating config...";
+  my @errors = $config->strict->validate($self->config);
+  if (@errors) {
+    die @errors;
+  }
+
+  my $password_complex_config = joi->object->props(
+    min_length => joi->number->min(1)->required,
+    alphas => joi->number->min(0)->required,
+    numbers => joi->number->min(0)->required,
+    specials => joi->number->min(0)->required,
+    spaces => joi->boolean->required
+  );
+
+  say "Validating password complexity config...";
+  @errors = $password_complex_config->strict->validate($self->config->{password_complexity});
+  if (@errors) {
+    die @errors;
+  }
+
+  my $default_route_config = joi->object->props(
+    uri => joi->string->required,
+    enable_jwt => joi->boolean,
+    requires_login => joi->boolean,
+    jwt_claims => joi->object,
+    transforms => joi->array,
+    other_headers => joi->object
+  );
+
+  say "Validating default route config...";
+  @errors = $default_route_config->validate($self->config->{default_route});
+  if (@errors) {
+    die @errors;
+  } 
+
+  say "Validating route config...";
+  for my $route (keys($self->config->{routes}->%*)) {
+    say "On route " . $route;
+    @errors = $default_route_config->validate($self->config->{routes}->{$route});
+    if (@errors) {
+      die @errors;
+    }
+  }
+
+  say "App Config - Valid ✅";
 }
 
 1;
