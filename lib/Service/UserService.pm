@@ -32,7 +32,7 @@ sub check_user_status ($self, $c) {
 
   # if there's no current_user populated in the session cookie
   # then we're not authenticated, OR if we fail user lookup, then re-direct to the sign-in page...
-  if (!$email || !defined(do { $record = $self->_get_user($email) })) {
+  if (!$email || !defined(do { $record = $self->_get_user($email); $record; })) {
 
     # set return_to value to go back to initially requested url
     # dont allow redirect back to itself - default to /
@@ -301,7 +301,6 @@ sub get_gmstamp {
 #
 # returns time since given date stamp (in ISO 8601 format) in days
 sub get_days_since_gmstamp ($self, $time) {
-  say $time;
   if (defined($self->config->{db_type}) && $self->config->{db_type} eq 'pg') {
 
     # consider if time format is of varying formats for pg

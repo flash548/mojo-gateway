@@ -106,7 +106,7 @@ sub users_delete ($self, $c) {
   if ($c->req->param('email')) {
     my $user = $self->user_service->delete_single_user($c);
     if ($user) {
-      return $c->render(json => {message => 'User Deleted'}, status => Constants::HTTP_NO_RESPONSE);
+      return $c->render(json => {message => 'User Deleted'}, status => Constants::HTTP_OK);
     } else {
       $c->render(json => {message => 'User not found'}, status => Constants::HTTP_NOT_FOUND);
     }

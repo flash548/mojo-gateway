@@ -271,7 +271,6 @@ sub get_logs (
   )->@*;
 
   # get the items from the built query
-  say $query_bindings->@*;
   my $items = $self->db->query($query, $query_bindings->@*)->hashes;
 
   # get the count of the whole, unpaged/unoffset'd resultset so our pagination UIs will
