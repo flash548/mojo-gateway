@@ -162,7 +162,7 @@ Within the admin interface you can:
 - ✅ Add user accounts
 - ✅ Delete user accounts
 - ✅ Update user accounts (change, expire passwords, change names, etc)
-- View traffic stats (route usage, status, etc) (WIP)
+- ✅ View traffic stats / Audit Log
 
 ## Roadmap
 
@@ -174,15 +174,9 @@ Desired features in order of most likely implementation:
 - Set optional config param for max attempts of unsuccessful login (e.g. lock account after 3 bad attempts)
 - Admin lock-out account
 - MFA option - integration with Google Authenticator
-- Audit Log - route usage stats
 - Add forgot-password feature -- vague at this point
 - Allow some type of configurable, self-registration - not sure what that looks like yet
 - Integration with AWS SES or the like - for email notifications
-
-### App Todos
-
-- ✅ Config validation on bootstrap - decide which fields are non-optional, and croak (or something) if not present or found
-- JSON validation for backend API endpoints
 
 ## Tests
 
