@@ -27,9 +27,12 @@ sub create_admin_user ($self) {
 
 sub check_user_status ($self, $c) {
 
-  # if there's no current_user populated in the session cookie,
-  # then we're not authenticated, so re-direct to the sign-in page...
-  unless ($c->session->{user}->{email}) {
+  my $email = $c->session->{user}->{email};
+  my $record;
+
+  # if there's no current_user populated in the session cookie
+  # then we're not authenticated, OR if we fail user lookup, then re-direct to the sign-in page...
+  if (!$email || !defined(do { $record = $self->_get_user($email) })) {
 
     # set return_to value to go back to initially requested url
     # dont allow redirect back to itself - default to /
@@ -41,9 +44,9 @@ sub check_user_status ($self, $c) {
     return undef;
   }
 
-# if user record shows we need to reset-password, and we're not already at the password path,
-#  then re-direct to that page
-  if ($c->session->{user}->{reset_password} && $c->req->url !~ /auth\/password\/change/) {
+  # if user record shows we need to reset-password, and we're not already at the password path,
+  #  then re-direct to that page
+  if ($record->{reset_password} && $c->req->url !~ /auth\/password\/change/) {
     $c->flash({return_to => $c->req->url});
     $c->redirect_to('/auth/password/change');
     return undef;
@@ -52,27 +55,27 @@ sub check_user_status ($self, $c) {
 # user authenticated OK or already-authenticated, check password expiry if we've defined
 #  that setting and its more than 0 days
   if (
-    ( $c->session->{user}->{reset_password}
+    ( $record->{reset_password}
       || (defined($self->config->{password_valid_days}) && $self->config->{password_valid_days} > 0)
     )
     && $c->req->url !~ /auth\/password\/change/
   ) {
     # because we said so
-    if ($c->session->{user}->{reset_password}) {
+    if ($record->{reset_password}) {
       $c->flash({return_to => $c->req->url, expired => 0, mandated => 1});
       $c->redirect_to('/auth/password/change');
       return undef;
     }
 
-# ok didnt blatantly say we need to change the password, so
-# if last_reset is undef, then set it to now, not sure how'd that be though, should default to current date time
-# otherwise check the age of the password
-    if (!defined($c->session->{user}->{last_reset})) {
-      $self->db->update("users", {last_reset => get_gmstamp()}, {email => lc $c->session->{user}->{email}});
+    # ok didnt blatantly say we need to change the password, so
+    # if last_reset is undef, then set it to now, not sure how'd that be though, should default to current date time
+    # otherwise check the age of the password
+    if (!defined($record->{last_reset})) {
+      $self->db->update("users", {last_reset => get_gmstamp()}, {email => lc $email});
     } else {
 
       # check days delta between NOW and last_reset
-      my $last_reset = $c->session->{user}->{last_reset};
+      my $last_reset = $record->{last_reset};
       if ($self->get_days_since_gmstamp($last_reset) >= $self->config->{password_valid_days}) {
         $c->flash({return_to => $c->req->url, expired => 1, mandated => 0});
         $c->redirect_to('/auth/password/change');
@@ -109,7 +112,7 @@ sub do_login ($self, $c) {
     # and return them to where they were trying to go to (or default to /)
     $self->db->update("users", {last_login => $self->get_gmstamp()}, {email => $username});
     $record = $self->_get_user($username);
-    $c->session->{user} = $record;
+    $c->session->{user} = { email => $record->{email}};
     $c->redirect_to($c->flash('return_to') // '/');
   } else {
     $c->render('login_page', login_failed => 1);
@@ -137,7 +140,8 @@ sub get_single_user ($self, $c) {
 }
 
 sub check_user_admin ($self, $c) {
-  return $c->session->{user}->{is_admin};
+  my $record = $self->_get_user($c->session->{user}->{email});
+  return defined($record) && $record->{is_admin};
 }
 
 # adds a new user
@@ -282,12 +286,6 @@ sub do_password_change ($self, $c) {
       },
       {email => $c->session->{user}->{email}}
     );
-
-    # now update the session cookie with updated user record, so we
-    # don't get to the change password screen again on next request
-    my $record = $self->_get_user($c->session->{user}->{email});
-    delete $record->{password};
-    $c->session->{user} = $record;
 
     $c->redirect_to($c->flash('return_to') // '/');
   }

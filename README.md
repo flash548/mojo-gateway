@@ -181,7 +181,7 @@ Desired features in order of most likely implementation:
 
 ### App Todos
 
-- Config validation on bootstrap - decide which fields are non-optional, and croak (or something) if not present or found
+- ✅ Config validation on bootstrap - decide which fields are non-optional, and croak (or something) if not present or found
 - JSON validation for backend API endpoints
 
 ## Tests
@@ -199,7 +199,7 @@ This service's pages are rendered using the Astro UXDS from Rocket Communication
 
 - Mojolicious Framework (https://github.com/mojolicious/mojo) and various other CPAN libraries
 - Astro UXDS from RocketCommunicationsInc (https://github.com/RocketCommunicationsInc)
-- AgGrid Community (v23.2.1) (www.ag-grid.com)
+- Ag-Grid Community (v23.2.1) (www.ag-grid.com)
 - Preact.js (https://github.com/preactjs/preact)
 - toastify-js (https://github.com/apvarun/toastify-js)
 - htm (https://github.com/developit/htm)
