@@ -24,9 +24,7 @@ sub detect_gremlins ($in) {
 sub validate_ISO_string ($str) {
   return 0 if $str !~ m/^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d$/;
 
-  eval {
-    Time::Piece->strptime($str, "%Y-%m-%dT%H:%M:%S");
-  };
+  eval { Time::Piece->strptime($str, "%Y-%m-%dT%H:%M:%S"); };
 
   if ($@) { return 0; }
 

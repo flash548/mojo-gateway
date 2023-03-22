@@ -22,7 +22,7 @@ has 'user_controller';
 
 # we'll check the config file routes do not match these as we do not
 # want these to get overriden - ever
-my $reserved_routes = [ '/admin', '/auth', '/login', '/logout' ];
+my $reserved_routes = ['/admin', '/auth', '/login', '/logout'];
 
 sub startup ($self) {
   my $config = $self->plugin('JSONConfig');
@@ -157,19 +157,20 @@ sub startup ($self) {
   $admin_routes->get('/' => sub ($c) { $self->admin_controller->admin_page_get($c) });
   $admin_routes->post('/users' => sub ($c) { $self->admin_controller->add_user_post($c) });
   $admin_routes->put('/users' => sub ($c) { $self->admin_controller->update_user_put($c) });
-  $admin_routes->get('/users'     => sub ($c) { $self->admin_controller->users_get($c) });
+  $admin_routes->get('/users' => sub ($c) { $self->admin_controller->users_get($c) });
   $admin_routes->delete('/users' => sub ($c) { $self->admin_controller->users_delete($c) });
 
   # Logs fetch routes
   if ($self->config->{enable_logging}) {
     $admin_routes->get('/http_logs' => sub ($c) { $self->admin_controller->get_http_logs($c) });
   } else {
-    $admin_routes->get('/http_logs' => sub ($c) { $c->render(json => { message => "Feature Disabled"}, status => Constants::HTTP_FORBIDDEN ); });
+    $admin_routes->get('/http_logs' =>
+        sub ($c) { $c->render(json => {message => "Feature Disabled"}, status => Constants::HTTP_FORBIDDEN); });
   }
 
   # these routes are just for authenticated (logged in users)
   #
-  # show the password change form 
+  # show the password change form
   $authorized_routes->get('/auth/password/change' => sub ($c) { $self->user_controller->password_change_form_get($c) });
   $authorized_routes->post('/auth/password/change' => sub ($c) { $self->user_controller->password_change_post($c) });
 
@@ -206,25 +207,25 @@ sub startup ($self) {
   }
 }
 
-sub validate_config($self) {
+sub validate_config ($self) {
   my $config = joi->object->props(
-    login_page_title   => joi->string,
-    enable_logging => joi->boolean,
-    logging_ignore_paths  => joi->array,
-    secret => joi->string->min(1)->required,
-    admin_user => joi->email->required,
-    admin_pass => joi->string(1)->required,
-    db_type => joi->string->enum(["pg", "sqlite"]),
-    db_uri => joi->string,
-    cookie_name => joi->string,
+    login_page_title        => joi->string,
+    enable_logging          => joi->boolean,
+    logging_ignore_paths    => joi->array,
+    secret                  => joi->string->min(1)->required,
+    admin_user              => joi->email->required,
+    admin_pass              => joi->string(1)->required,
+    db_type                 => joi->string->enum(["pg", "sqlite"]),
+    db_uri                  => joi->string,
+    cookie_name             => joi->string,
     strip_headers_to_client => joi->array,
-    jwt_secret => joi->string->required,
-    routes => joi->object->required,
-    password_valid_days => joi->number->positive->required,
-    password_complexity => joi->object->required,
-    default_route => joi->object->required,
-    test => joi->boolean,
-    config_override => joi->boolean # this is put in by Mojo on config overrides in testing
+    jwt_secret              => joi->string->required,
+    routes                  => joi->object->required,
+    password_valid_days     => joi->number->positive->required,
+    password_complexity     => joi->object->required,
+    default_route           => joi->object->required,
+    test                    => joi->boolean,
+    config_override         => joi->boolean    # this is put in by Mojo on config overrides in testing
   );
 
   say "Validating config...";
@@ -235,10 +236,10 @@ sub validate_config($self) {
 
   my $password_complex_config = joi->object->props(
     min_length => joi->number->min(1)->required,
-    alphas => joi->number->min(0)->required,
-    numbers => joi->number->min(0)->required,
-    specials => joi->number->min(0)->required,
-    spaces => joi->boolean->required
+    alphas     => joi->number->min(0)->required,
+    numbers    => joi->number->min(0)->required,
+    specials   => joi->number->min(0)->required,
+    spaces     => joi->boolean->required
   );
 
   say "Validating password complexity config...";
@@ -248,19 +249,19 @@ sub validate_config($self) {
   }
 
   my $default_route_config = joi->object->props(
-    uri => joi->string->required,
-    enable_jwt => joi->boolean,
+    uri            => joi->string->required,
+    enable_jwt     => joi->boolean,
     requires_login => joi->boolean,
-    jwt_claims => joi->object,
-    transforms => joi->array,
-    other_headers => joi->object
+    jwt_claims     => joi->object,
+    transforms     => joi->array,
+    other_headers  => joi->object
   );
 
   say "Validating default route config...";
   @errors = $default_route_config->validate($self->config->{default_route});
   if (@errors) {
     die @errors;
-  } 
+  }
 
   say "Validating route config...";
   for my $route (keys($self->config->{routes}->%*)) {

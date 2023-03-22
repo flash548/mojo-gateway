@@ -10,7 +10,7 @@ has 'db';
 has 'config';
 has 'password_util' => sub { Password::Utils->new };
 
-# other fields/keys allowed to POST/PUT besides the the email field (otherwise they're ignored)
+# other fields/keys ALLOWED to POST/PUT (otherwise they're ignored)
 has 'user_obj_allowed_fields' => sub { ['reset_password', 'first_name', 'last_name', 'is_admin', 'user_id'] };
 
 # creates a default admin user if it doesnt exist
@@ -112,7 +112,7 @@ sub do_login ($self, $c) {
     # and return them to where they were trying to go to (or default to /)
     $self->db->update("users", {last_login => $self->get_gmstamp()}, {email => $username});
     $record = $self->_get_user($username);
-    $c->session->{user} = { email => $record->{email}};
+    $c->session->{user} = {email => $record->{email}};
     $c->redirect_to($c->flash('return_to') // '/');
   } else {
     $c->render('login_page', login_failed => 1);
@@ -128,8 +128,8 @@ sub _user_exists ($self, $username) {
 }
 
 sub get_all_users ($self, $c) {
-  my $users = $self->db->select('users', ['email', 'reset_password', 'user_id', 'last_reset', 'last_login', 'is_admin'])
-    ->hashes;
+  my $users = $self->db->select('users',
+    ['email', 'reset_password', 'user_id', 'last_reset', 'last_login', 'is_admin', 'first_name', 'last_name'])->hashes;
   $c->render(json => $users);
 }
 
