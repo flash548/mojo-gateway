@@ -202,7 +202,7 @@ subtest 'Test User Login/Logout/Admin operations' => sub {
 
   $t->delete_ok('/admin/users')->status_is(Constants::HTTP_BAD_REQUEST, 'Bad request');
   $t->delete_ok('/admin/users?email=test2@test.com')->status_is(Constants::HTTP_NOT_FOUND, 'Bogus user delete');
-  $t->delete_ok('/admin/users?email=test@test.com')->status_is(204, 'Successfully deleted user');
+  $t->delete_ok('/admin/users?email=test@test.com')->status_is(Constants::HTTP_OK, 'Successfully deleted user');
 
   # trust but verify user deleted
   $t->get_ok('/admin/users')->status_is(Constants::HTTP_OK)
