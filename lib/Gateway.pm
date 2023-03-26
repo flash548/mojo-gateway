@@ -96,6 +96,9 @@ sub startup ($self) {
   # create the admin user if it doesn't exist
   $self->user_service->create_admin_user;
 
+  # mark all users as MFA enabled if that option is set
+  $self->user_service->mark_all_as_mfa;
+
   # login/logout shortcut - always reachable
   $self->routes->get('/logout' => sub ($c) { $self->user_controller->logout_get($c) });
   $self->routes->get('/login'  => sub ($c) { $self->user_controller->login_page_get($c) });
@@ -170,9 +173,15 @@ sub startup ($self) {
 
   # these routes are just for authenticated (logged in users)
   #
-  # show the password change form
+  # allow the password change form
   $authorized_routes->get('/auth/password/change' => sub ($c) { $self->user_controller->password_change_form_get($c) });
   $authorized_routes->post('/auth/password/change' => sub ($c) { $self->user_controller->password_change_post($c) });
+  #
+  # allow the MFA forms
+  $authorized_routes->get('/auth/mfa/init' => sub ($c) { $self->user_controller->mfa_init_form_get($c) });
+  $authorized_routes->post('/auth/mfa/init' => sub ($c) { $self->user_controller->mfa_init_form_post($c) });
+  $authorized_routes->get('/auth/mfa/entry' => sub ($c) { $self->user_controller->mfa_entry_form_get($c) });
+  $authorized_routes->post('/auth/mfa/entry' => sub ($c) { $self->user_controller->mfa_entry_form_post($c) });
 
   # add our proxy routes requiring authentication
   for my $route_spec (keys %{$config->{routes}}) {
@@ -210,6 +219,10 @@ sub startup ($self) {
 sub validate_config ($self) {
   my $config = joi->object->props(
     login_page_title        => joi->string,
+    mfa_secret              => joi->string,
+    mfa_force_on_all        => joi->boolean,
+    mfa_issuer              => joi->string,
+    mfa_key_id              => joi->string,
     enable_logging          => joi->boolean,
     logging_ignore_paths    => joi->array,
     secret                  => joi->string->min(1)->required,

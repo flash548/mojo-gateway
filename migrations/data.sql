@@ -40,3 +40,7 @@ CREATE TABLE http_logs (
   time_taken_ms INTEGER,
   foreign key(user_email) references users(email)
 );
+
+-- 7 up
+ALTER TABLE users ADD COLUMN mfa_secret VARCHAR;
+ALTER TABLE users ADD COLUMN is_mfa BOOLEAN DEFAULT FALSE;

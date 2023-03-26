@@ -11,6 +11,7 @@ export function EditPanel(props) {
       password: "",
       is_admin: false,
       user_id: 0,
+      is_mfa: false,
     },
   });
 
@@ -179,6 +180,19 @@ export function EditPanel(props) {
                     selectedUser: { ...state.selectedUser, is_admin: checked },
                   })}
               />
+              <% if ($c->config->{mfa_secret} && $c->config->{mfa_issuer} && $c->config->{mfa_key_id}) { %>
+                <div class="rux-form-field mb2">
+                  <${Checkbox}
+                    id="user-mfa"
+                    label="Is MFA?"
+                    checked=${state.selectedUser.is_mfa}
+                    onClick=${(checked) =>
+                      setState({
+                        ...state,
+                        selectedUser: { ...state.selectedUser, is_mfa: checked },
+                      })}
+                />
+              <% } %>
             </div>
             <button
               type="submit"

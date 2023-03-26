@@ -80,4 +80,63 @@ sub password_change_post ($self, $c) {
 }
 
 
+# GET /auth/mfa/init
+#
+# Reachable by: any logged in user AND a logged in user that has to init MFA
+#
+# Description: Renders the MFA init page template
+#
+# Content-Type: 'text/html'
+sub mfa_init_form_get ($self, $c) {
+
+  # check that we're not just arbitrarily trying to come here
+  # check that we were sent here
+  if ($c->session->{mfa_setup_required}) {
+    $self->user_service->set_up_mfa($c);
+  } else {
+    $c->render('restricted_page');
+  }
+
+}
+
+# POST /auth/mfa/init
+#
+# Reachable by: any logged in user AND a logged in user that has to init MFA
+#
+# Description: Signals that user is done with MFA setup and continues on to orginal
+# requested page
+#
+# Content-Type: 'text/html'
+sub mfa_init_form_post ($self, $c) {
+  if ($c->session->{mfa_setup_required}) {
+    delete $c->session->{mfa_setup_required};
+    $c->flash({return_to => $c->flash('return_to')});
+    $c->redirect_to($c->flash('return_to') // '/');
+  } else {
+    $c->render('restricted_page');
+  }
+}
+
+sub mfa_entry_form_get ($self, $c) {
+
+  # check that we just came from a successful user/pass entry...
+  if ($c->session->{user_pass_ok}) {
+    $c->user_service->render('mfa_entry_page');
+  } else {
+    $c->render('restricted_page');
+  }
+}
+
+sub mfa_entry_form_post ($self, $c) {
+
+  # check that we just came from a successful user/pass entry...
+  if ($c->session->{user_pass_ok}) {
+    $c->user_service->check_mfa_code($c);
+  } else {
+    $c->render('restricted_page');
+  }
+}
+
+
+
 1;

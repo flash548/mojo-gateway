@@ -42,6 +42,21 @@ subtest 'Test User Login/Logout/Admin operations' => sub {
   $t->get_ok('/api')->status_is(Constants::HTTP_OK)->content_like(qr/login/i, 'Test Login screen landing 3')
     ->element_exists('[name=username]')->element_exists('[name=password]');
 
+  # do a bad login and we get error message
+  $t->post_ok('/auth/login', form => {username => 'admin@test.com', password => ''})
+    ->status_is(Constants::HTTP_OK)
+    ->content_like(qr/ Login failed: User or password incorrect!/, 'Make sure we get error message on bad login 1');
+
+  # do a bad login and we get error message
+  $t->post_ok('/auth/login', form => {username => 'admin@test.com', password => undef})
+    ->status_is(Constants::HTTP_OK)
+    ->content_like(qr/ Login failed: User or password incorrect!/, 'Make sure we get error message on bad login 2');
+
+  # do a bad login and we get error message
+  $t->post_ok('/auth/login', form => {username => undef, password => undef})
+    ->status_is(Constants::HTTP_OK)
+    ->content_like(qr/ Login failed: User or password incorrect!/, 'Make sure we get error message on bad login 3');
+
   # do a login and we dont get the login form anymore
   $t->post_ok('/auth/login', form => {username => 'admin@test.com', password => 'testpass'})
     ->status_is(Constants::HTTP_OK)->content_unlike(qr/login/i, 'Make sure we are not at the login page anymore');
