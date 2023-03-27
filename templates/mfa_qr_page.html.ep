@@ -16,9 +16,9 @@
         </div>
         <div>
           <p>Scan the QR code for input to Google Authenticator App (or other OTP tool).  Click Done when complete.</p>
-          <img src="<%= stash 'qr_code_url' %>" />
-          <form>
-            <button type="submit" action="/auth/mfa/register" method="POST" class="rux-button pointer ma2" type="submit">
+          <img src="<%= $qr_code_url %>" />
+          <form action="/auth/mfa/init" method="POST">
+            <button type="submit" class="rux-button pointer ma2" type="submit">
               Done
             </button>
           </form>

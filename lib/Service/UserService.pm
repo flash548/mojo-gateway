@@ -94,6 +94,9 @@ sub check_user_status ($self, $c) {
     $c->session->{mfa_setup_required} = 1;
     $c->redirect_to('/auth/mfa/init');
     return undef;
+  } elsif (!$record->{is_mfa} && defined($record->{mfa_secret})) {
+    # if user is disenrolled from MFA but has a secret still on file - null that out
+    $self->db->update('users', { mfa_secret => undef }, { email => $email });
   }
 
   # continue on
@@ -119,9 +122,18 @@ sub do_login ($self, $c) {
       $record = $self->_get_user($username);
     }
 
+    # set the session cookie username - since user/pass was good
+    $c->session->{user} = {email => $record->{email}};
 
-    if ($record->{is_mfa}) {
+    # if user account is set to be MFA-enabled, then check to see if we
+    # need to set that up...
+    if ($record->{is_mfa} && !defined($record->{mfa_secret})) {
+      $c->flash({return_to => $c->req->url});
+      $c->session->{mfa_setup_required} = 1;
+      $c->redirect_to('/auth/mfa/init');
+    } elsif ($record->{is_mfa}) {
       # so far so good, but we're an MFA account, so go do that
+      use Test::More;
       $c->session->{user_pass_ok} = 1;
       $c->flash({return_to => $c->flash('return_to')});
       $c->redirect_to('/auth/mfa/entry');
@@ -129,11 +141,10 @@ sub do_login ($self, $c) {
       # update person's last login time, set the session to the user's record
       # and return them to where they were trying to go to (or default to /)
       $self->db->update("users", {last_login => $self->get_gmstamp()}, {email => $username});
-      $c->session->{user} = {email => $record->{email}};
       $c->redirect_to($c->flash('return_to') // '/');
     }
   } else {
-    $c->render('login_page', login_failed => 1);
+    $c->render('login_page', login_failed => 1, user => $username);
   }
 }
 
@@ -165,7 +176,7 @@ sub check_user_admin ($self, $c) {
 # helper to make sure we remove sensitive fields from user object
 sub sanatize_user_obj ($self, $obj) {
   delete $obj->{password};     # dont ever return the password
-  delete $obj->{mfa_hash};    # done ever return the mfa secret
+  delete $obj->{mfa_secret};    # done ever return the mfa secret
 }
 
 # adds a new user
@@ -403,11 +414,22 @@ sub set_up_mfa ($self, $c) {
   my $secret32 = $auth->generate_secret32;
   my $png_url = $auth->qr_code($secret32);
 
-  # store this users secret
-  $self->db->update('users', { mfa_secret => $secret32 }, { email => $c->session->{user}->{email}});
+  # put secret in flash for the finalization stage
+  $c->flash({ qr_code => $secret32 });
 
   # render the mfa qr page
-  $c->render('mfa_qr_page.html.ep', qr_code_url => $png_url);
+  $c->render('mfa_qr_page', qr_code_url => $png_url);
+}
+
+# TEST THIS
+sub finalize_mfa_setup ($self, $c) {
+  delete $c->session->{mfa_setup_required};
+  $c->flash({return_to => $c->flash('return_to')});
+
+  # store this users secret
+  $self->db->update('users', { mfa_secret => $c->flash('qr_code') }, { email => $c->session->{user}->{email}});
+
+  $c->redirect_to($c->flash('return_to') // '/');
 }
 
 # TEST THIS

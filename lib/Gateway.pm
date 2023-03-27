@@ -26,7 +26,10 @@ my $reserved_routes = ['/admin', '/auth', '/login', '/logout'];
 
 sub startup ($self) {
   my $config = $self->plugin('JSONConfig');
+
+  # validate our config before doing anything
   $self->validate_config();
+  
   $self->secrets([$config->{secret}]);
   $self->sessions->cookie_name($config->{cookie_name} // 'mojolicious');
   $self->hook(
@@ -240,6 +243,11 @@ sub validate_config ($self) {
     test                    => joi->boolean,
     config_override         => joi->boolean    # this is put in by Mojo on config overrides in testing
   );
+
+  if ($self->config->{mfa_secret} || $self->config->{mfa_issuer} || $self->config->{mfa_key_id}) {
+    die "MFA secret/issuer/key_id must ALL be set if any of the others are set" unless 
+      $self->config->{mfa_secret} && $self->config->{mfa_issuer} && $self->config->{mfa_key_id};
+  }
 
   say "Validating config...";
   my @errors = $config->strict->validate($self->config);
