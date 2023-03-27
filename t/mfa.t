@@ -183,7 +183,10 @@ subtest 'Test that user secret is undef-d on user PUT from API' => sub {
   # create new user - check return data - check does NOT have the mfa secret in it
   $t->post_ok('/admin/users',
     json => {email => 'test-perler@test.com', password => 'password', reset_password => 0, is_mfa => 1, is_admin => 0,})
-    ->status_is(Constants::HTTP_CREATED)->json_like('/is_mfa' => qr/1/)->json_hasnt('/mfa_secret');
+    ->status_is(Constants::HTTP_CREATED)
+    ->json_like('/is_mfa' => qr/1/)
+    ->json_hasnt('/password')
+    ->json_hasnt('/mfa_secret');
 
   # check that the MFA flag was set for next login enrollment
   ok ($t->app->db_conn->db->select('users', undef, { email => 'test-perler@test.com' })->hashes->[0]->{is_mfa});
@@ -226,12 +229,24 @@ subtest 'Test that user secret is undef-d on user PUT from API' => sub {
   $t->post_ok('/auth/login', form => {username => 'admin@test.com', password => 'testpass'})
     ->status_is(Constants::HTTP_OK)->content_unlike(qr/MFA/i, 'Admin login');
 
-  $t->get_ok('/auth/users?email=test-perler@test.com')->status_is(Constants::HTTP_OK)->json_hasnt('/mfa_secret');
+  # check user get ALL return doesn't have mfa_secret in it or password
+  my $size = $t->app->db_conn->db->select('users')->hashes->size;
+  for (my $i=0;$i<$size;$i++) {
+    $t->get_ok('/auth/users')->status_is(Constants::HTTP_OK)
+      ->json_hasnt("/${i}/mfa_secret")
+      ->json_hasnt("/${i}/password");
+  }
+
+  # check user get return doesn't have mfa_secret in it or password
+  $t->get_ok('/auth/users?email=test-perler@test.com')->status_is(Constants::HTTP_OK)
+    ->json_hasnt('/mfa_secret')
+    ->json_hasnt('/password');
 
   # login as admin and PUT update test-perler's account to not be MFA anymore
   $t->put_ok('/admin/users' => json => {email => 'test-perler@test.com', is_mfa => 0, is_admin => 0,})
     ->status_is(Constants::HTTP_OK)
-    ->json_hasnt('/mfa_secret');
+    ->json_hasnt('/mfa_secret')
+    ->json_hasnt('/password');
 
   # test the database secret is gone
   ok !defined ($t->app->db_conn->db->select('users', undef, { email => 'test-perler@test.com' })->hashes->[0]->{mfa_secret});
