@@ -41,3 +41,7 @@ CREATE TABLE http_logs (
   request_user_agent VARCHAR(255),
   time_taken_ms DECIMAL
 );
+
+-- 7 up
+ALTER TABLE users ADD COLUMN mfa_secret VARCHAR;
+ALTER TABLE users ADD COLUMN is_mfa BOOLEAN DEFAULT FALSE;
