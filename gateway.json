@@ -1,5 +1,9 @@
 {
   "login_page_title": "Login",
+  "mfa_secret": "secret",
+  "mfa_issuer": "mojo_gateway",
+  "mfa_key_id": "login",
+  "mfa_force_on_all": false,
   "enable_logging": true,
   "logging_ignore_paths": [ "/admin/http_logs", "/favicon", "/js", "/css", "/icons", "/fonts" ],
   "secret": "<%= $ENV{SECRET} // 'change_this' %>",
