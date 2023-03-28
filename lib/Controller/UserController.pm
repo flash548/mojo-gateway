@@ -115,6 +115,13 @@ sub mfa_init_form_post ($self, $c) {
   }
 }
 
+# GET /auth/mfa/entry
+#
+# Reachable by: any MFA-enabled auth'd user that is marked as needing to input a MFA code
+#
+# Description: accepts a user's MFA code input
+#
+# Content-Type: 'text/html'
 sub mfa_entry_form_get ($self, $c) {
 
   # check that we just came from a successful user/pass entry...
@@ -125,6 +132,13 @@ sub mfa_entry_form_get ($self, $c) {
   }
 }
 
+# POST /auth/mfa/entry
+#
+# Reachable by: any MFA-enabled auth'd user that is marked as needing to input a MFA code
+#
+# Description: takes the user's MFA input code for verification
+#
+# Content-Type: 'text/html'
 sub mfa_entry_form_post ($self, $c) {
 
   # check that we just came from a successful user/pass entry...
@@ -134,7 +148,6 @@ sub mfa_entry_form_post ($self, $c) {
     $c->render('restricted_page');
   }
 }
-
 
 
 1;

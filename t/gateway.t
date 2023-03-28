@@ -222,6 +222,12 @@ subtest 'Test User Login/Logout/Admin operations' => sub {
   # trust but verify user deleted
   $t->get_ok('/admin/users')->status_is(Constants::HTTP_OK)
     ->content_unlike(qr/test\@test.com/, 'No more test@test.com user');
+
+  # check that user passwords are not in the get-all
+  for (my $i=0;$i < $t->app->db_conn->db->select('users')->hashes->size;$i++) {
+    $t->get_ok('/admin/users')->status_is(Constants::HTTP_OK)->json_hasnt("/${i}/password");
+    $t->get_ok('/admin/users')->status_is(Constants::HTTP_OK)->json_hasnt("/${i}/mfa_secret");
+  }
 };
 
 subtest 'Test user account updates cannot modify read-only fields' => sub {
