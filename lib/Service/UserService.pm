@@ -47,6 +47,15 @@ sub check_user_status ($self, $c) {
     return undef;
   }
 
+  # covers the case where we log in with user/pass on an mfa acct, then we nav away and come back 
+  # and we haven't done the mfa yet
+  if ($c->session->{user_pass_ok} && $record->{is_mfa} && $c->req->url !~ /auth\/mfa\/entry/) {
+    # so far so good, but we're an MFA account, so go do that
+    $c->session->{user_pass_ok} = 1;
+    $c->flash({return_to => $c->flash('return_to')});
+    $c->redirect_to('/auth/mfa/entry');
+  }
+
   # if user record shows we need to reset-password, and we're not already at the password path,
   #  then re-direct to that page
   if ($record->{reset_password} && $c->req->url !~ /auth\/password\/change/) {
@@ -134,7 +143,6 @@ sub do_login ($self, $c) {
       $c->session->{mfa_setup_required} = 1;
       $c->redirect_to('/auth/mfa/init');
     } elsif ($record->{is_mfa}) {
-
       # so far so good, but we're an MFA account, so go do that
       $c->session->{user_pass_ok} = 1;
       $c->flash({return_to => $c->flash('return_to')});

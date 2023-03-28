@@ -180,6 +180,7 @@ export function EditPanel(props) {
                     selectedUser: { ...state.selectedUser, is_admin: checked },
                   })}
               />
+            </div>
               <% if ($c->config->{mfa_secret} && $c->config->{mfa_issuer} && $c->config->{mfa_key_id}) { %>
                 <div class="rux-form-field mb2">
                   <${Checkbox}
@@ -192,8 +193,8 @@ export function EditPanel(props) {
                         selectedUser: { ...state.selectedUser, is_mfa: checked },
                       })}
                 />
+                </div>
               <% } %>
-            </div>
             <button
               type="submit"
               disabled=${state.isSubmitting}
