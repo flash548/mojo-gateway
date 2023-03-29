@@ -175,19 +175,17 @@ Within the admin interface you can:
 - ✅ Update user accounts (change, expire passwords, change names, etc)
 - ✅ View traffic stats / Audit Log
 
-## Roadmap
+## App Features
 
-Desired features in order of most likely implementation:
-
-
-### App Features
-
-- Set optional config param for max attempts of unsuccessful login (e.g. lock account after 3 bad attempts)
-- Admin lock-out account
+- ✅ Add/Edit/User accounts
+- ✅ Audit Log
 - ✅ MFA option - integration with Google Authenticator
-- Add forgot-password feature -- vague at this point
-- Allow some type of configurable, self-registration - not sure what that looks like yet
-- Integration with AWS SES or the like - for email notifications
+- 🔳 Console/Debug logging
+- 🔳 Set optional config param for max attempts of unsuccessful login (e.g. lock account after 3 bad attempts)
+- 🔳 Admin lock-out account
+- 🔳 Add forgot-password feature -- vague at this point
+- 🔳 Allow some type of configurable, self-registration - not sure what that looks like yet
+- 🔳 Integration with AWS SES or the like - for email notifications
 
 ## Tests
 
