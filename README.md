@@ -27,11 +27,17 @@ Example configuration file that uses a Postgres database:
 ```json
 {
   "login_page_title": "Login",
+  "mfa_secret": "secret",
+  "mfa_issuer": "mojo_gateway",
+  "mfa_key_id": "login",
+  "mfa_force_on_all": false,
+  "enable_logging": true,
+  "logging_ignore_paths": [ "/admin/http_logs", "/favicon", "/js", "/css", "/icons", "/fonts" ],
   "secret": "<%= $ENV{SECRET} // 'change_this' %>",
   "admin_user": "<%= $ENV{ADMIN_USER} // 'admin@admin.com' %>",
   "admin_pass": "<%= $ENV{ADMIN_PASS} // 'password' %>",
-  "db_type": "<%= $ENV{DB_TYPE} // 'pg' %>",
-  "db_uri": "<%= $ENV{DB_URI} // 'postgresql://somedude:password@localhost:5432/test' %>",
+  "db_type": "<%= $ENV{DB_TYPE} // 'sqlite' %>",
+  "db_uri": "<%= $ENV{DB_URI} // 'postgresql://somedude:password@localhost:5432/database' %>",
   "cookie_name": "<%= $ENV{COOKIE_NAME} // 'mojolicious' %>",
   "strip_headers_to_client": [ "authorization", "server", "x-powered-by"  ],
   "jwt_secret": "<%= $ENV{SECRET} // 'change_this' %>",
@@ -39,6 +45,7 @@ Example configuration file that uses a Postgres database:
     "/": {
       "uri": "<%= $ENV{FRONTEND_URI} // 'http://localhost:8080/' %>",
       "enable_jwt": true,
+      "requires_login": true,
       "jwt_claims": {
         "email": "$c->session->{user}->{email}"
       }
@@ -46,16 +53,18 @@ Example configuration file that uses a Postgres database:
     "/api/**" : {
       "uri": "<%= $ENV{BACKEND_URI} // 'http://localhost:9000/' %>",
       "enable_jwt": true,
+      "requires_login": true,
       "jwt_claims": {
         "email": "$c->session->{user}->{email}"
       }
     },
-    "/some-other-api" : {
+    "/other-api" : {
       "uri" : "<%= $ENV{OTHER_BACKEND_URI} // 'http://localhost:8081/' %>",
       "enable_jwt": true,
+      "requires_login": true,
       "jwt_claims": {
         "email": "$c->session->{user}->{email}",
-        "usercertificate": "\"Developer.\" . $c->session->{user}->{user_id}"
+        "usercertificate": "\"Tron.Developer.\" . $c->session->{user}->{user_id}"
       },
       "other_headers": {
         "x-forwarded-client-cert": "some other header data"
@@ -73,6 +82,7 @@ Example configuration file that uses a Postgres database:
   "default_route": {
     "uri": "<%= $ENV{FRONTEND_URI} // 'http://localhost:8080/' %>",
     "enable_jwt": true,
+    "requires_login": true,
     "jwt_claims": {
       "email": "$c->session->{user}->{email}"
     },
@@ -82,6 +92,7 @@ Example configuration file that uses a Postgres database:
     }]
   }
 }
+
 
 ```
 
