@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>MFA Entry</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/css/astro.min.css" />
+    <link rel="stylesheet" href="/css/tachyons.min.css" />
+  </head>
+
+  <body class="dark-theme">
+    <div class="vh-100 w-100 flex flex-column justify-center items-center">
+      <div class="pv4 ph4 br2" style="background-color: var(--surfaceElements)">
+        <div class="mb4">
+          <h2>Enter MFA</h2>
+        </div>
+        <div>
+          <% if (stash 'mfa_failed') { %>
+          <div style="color: var(--statusDarkSerious)">
+            Login failed: MFA Incorrect!
+          </div>
+          <%} %>
+          <form action="/auth/mfa/entry" method="POST">
+            <input
+              type="hidden"
+              name="return_to"
+              value="<%= stash 'return_to' %>"
+            />
+            <div class="rux-form-field ma2">
+              <label class="mb1" for="mfa-entry">MFA</label>
+              <input
+                class="mt1"
+                id="mfa-entry"
+                name="mfa-entry"
+                autocapitalize="none"
+                autocorrect="none"
+                type="text"
+                placeholder="MFA code"
+                value=""
+              />
+            </div>           
+            <div class="flex w-100 justify-end">
+              <button class="rux-button pointer ma2" type="submit">
+                Submit
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

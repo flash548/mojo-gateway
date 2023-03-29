@@ -1,6 +1,7 @@
 package Service::UserService;
 use Mojo::Base -base, -signatures;
 use Time::Piece;
+use Auth::GoogleAuth;
 
 use Password::Utils;
 use Constants;
@@ -11,7 +12,7 @@ has 'config';
 has 'password_util' => sub { Password::Utils->new };
 
 # other fields/keys ALLOWED to POST/PUT (otherwise they're ignored)
-has 'user_obj_allowed_fields' => sub { ['reset_password', 'first_name', 'last_name', 'is_admin', 'user_id'] };
+has 'user_obj_allowed_fields' => sub { ['reset_password', 'first_name', 'last_name', 'is_admin', 'user_id', 'is_mfa'] };
 
 # creates a default admin user if it doesnt exist
 sub create_admin_user ($self) {
@@ -25,6 +26,8 @@ sub create_admin_user ($self) {
   ) unless defined($self->db->select('users', undef, {email => $self->config->{admin_user}})->hash);
 }
 
+# checks each incoming request that are destined to any route requiring
+# authentication
 sub check_user_status ($self, $c) {
 
   my $email = $c->session->{user}->{email};
@@ -44,6 +47,15 @@ sub check_user_status ($self, $c) {
     return undef;
   }
 
+  # covers the case where we log in with user/pass on an mfa acct, then we nav away and come back 
+  # and we haven't done the mfa yet
+  if ($c->session->{user_pass_ok} && $record->{is_mfa} && $c->req->url !~ /auth\/mfa\/entry/) {
+    # so far so good, but we're an MFA account, so go do that
+    $c->session->{user_pass_ok} = 1;
+    $c->flash({return_to => $c->flash('return_to')});
+    $c->redirect_to('/auth/mfa/entry');
+  }
+
   # if user record shows we need to reset-password, and we're not already at the password path,
   #  then re-direct to that page
   if ($record->{reset_password} && $c->req->url !~ /auth\/password\/change/) {
@@ -52,8 +64,8 @@ sub check_user_status ($self, $c) {
     return undef;
   }
 
-# user authenticated OK or already-authenticated, check password expiry if we've defined
-#  that setting and its more than 0 days
+  # user authenticated OK or was already authenticated, check password expiry if we've defined
+  #  that setting and its more than 0 days
   if (
     ( $record->{reset_password}
       || (defined($self->config->{password_valid_days}) && $self->config->{password_valid_days} > 0)
@@ -84,14 +96,29 @@ sub check_user_status ($self, $c) {
     }
   }
 
-  # continue on to the routes below
+  # if user account is set to be MFA-enabled, then check to see if we
+  # need to set that up...
+  if ($record->{is_mfa} && !defined($record->{mfa_secret}) && $c->req->url !~ /auth\/mfa\/init/) {
+    $c->flash({return_to => $c->req->url});
+    $c->session->{mfa_setup_required} = 1;
+    $c->redirect_to('/auth/mfa/init');
+    return undef;
+  } elsif (!$record->{is_mfa} && defined($record->{mfa_secret})) {
+
+    # if user is disenrolled from MFA but has a secret still on file - null that out
+    $self->db->update('users', {mfa_secret => undef}, {email => $email});
+  }
+
+  # continue on
   return 1;
 }
 
+# handles the login process
 sub do_login ($self, $c) {
 
   if (!$c->req->param('username') || !$c->req->param('password')) {
-    $c->render(json => {message => 'Username and password fields are required'}, status => Constants::HTTP_BAD_REQUEST);
+    $c->render('login_page', login_failed => 1);
+    return;
   }
 
   my $username = lc $c->req->param('username');
@@ -99,49 +126,73 @@ sub do_login ($self, $c) {
 
   my $record = $self->_get_user($username);
   if ($record && $self->password_util->check_pass($record->{password}, $password)) {
-    delete $record->{password};
 
     # fix an undef 'last_reset' to now
     if (!defined($record->{last_reset})) {
       $self->db->update("users", {last_reset => $self->get_gmstamp()}, {email => $username});
       $record = $self->_get_user($username);
-      delete $record->{password};
     }
 
-    # update person's last login time, set the session to the user's record
-    # and return them to where they were trying to go to (or default to /)
-    $self->db->update("users", {last_login => $self->get_gmstamp()}, {email => $username});
-    $record = $self->_get_user($username);
+    # set the session cookie username - since user/pass was good
     $c->session->{user} = {email => $record->{email}};
-    $c->redirect_to($c->flash('return_to') // '/');
+
+    # if user account is set to be MFA-enabled, then check to see if we
+    # need to set that up...
+    if ($record->{is_mfa} && !defined($record->{mfa_secret})) {
+      $c->flash({return_to => $c->req->url});
+      $c->session->{mfa_setup_required} = 1;
+      $c->redirect_to('/auth/mfa/init');
+    } elsif ($record->{is_mfa}) {
+      # so far so good, but we're an MFA account, so go do that
+      $c->session->{user_pass_ok} = 1;
+      $c->flash({return_to => $c->flash('return_to')});
+      $c->redirect_to('/auth/mfa/entry');
+    } else {
+
+      # update person's last login time, set the session to the user's record
+      # and return them to where they were trying to go to (or default to /)
+      $self->db->update("users", {last_login => $self->get_gmstamp()}, {email => $username});
+      $c->redirect_to($c->flash('return_to') // '/');
+    }
   } else {
-    $c->render('login_page', login_failed => 1);
+    $c->render('login_page', login_failed => 1, user => $username);
   }
 }
 
+# private method to get a user from the database with all fields present
 sub _get_user ($self, $username) {
   return $self->db->select("users", undef, {email => lc $username})->hash;
 }
 
+# private method to say whether a user exists or not
 sub _user_exists ($self, $username) {
   return defined($self->_get_user($username));
 }
 
+# gets all the users for the get-all-users endpoint
 sub get_all_users ($self, $c) {
-  my $users = $self->db->select('users',
-    ['email', 'reset_password', 'user_id', 'last_reset', 'last_login', 'is_admin', 'first_name', 'last_name'])->hashes;
+  my $users = $self->db->select('users')->hashes->map(sub { $self->sanatize_user_obj($_); $_; });
   $c->render(json => $users);
 }
 
+# helper to pull a single user from the db by their email
+# using a private helper but sanatizing the return before we send it back
 sub get_single_user ($self, $c) {
   my $user = $self->_get_user($c->req->param('email'));
-  delete $user->{password} if defined($user);
+  $self->sanatize_user_obj($user) if defined($user);
   return $user;
 }
 
+# helper to return a boolean on whether a user is admin-blessed
 sub check_user_admin ($self, $c) {
   my $record = $self->_get_user($c->session->{user}->{email});
   return defined($record) && $record->{is_admin};
+}
+
+# helper to make sure we remove sensitive fields from user object
+sub sanatize_user_obj ($self, $obj) {
+  delete $obj->{password};      # dont ever return the password
+  delete $obj->{mfa_secret};    # done ever return the mfa secret
 }
 
 # adds a new user
@@ -168,7 +219,7 @@ sub add_user ($self, $c) {
     $self->db->insert(users => $user);
     my $new_user = $self->_get_user($c->req->json->{email});
 
-    delete $new_user->{password};    # dont ever return the password
+    $self->sanatize_user_obj($new_user);
     $c->render(status => Constants::HTTP_CREATED, json => $new_user);
   }
 }
@@ -204,11 +255,17 @@ sub update_user ($self, $c) {
       }
     }
 
+    # clear out MFA hash if we're disabling MFA for this user
+    if (defined($user->{is_mfa}) && !$user->{is_mfa}) {
+      $existing_user->{mfa_secret} = undef;
+    }
+
+    # commit the update
     $self->db->update('users', $existing_user, {email => lc($existing_user->{email})});
     my $updated_user = $self->_get_user(lc($existing_user->{email}));
 
-    # dont ever return the password
-    delete $updated_user->{password};
+    # dont ever return the password or the MFA secret
+    $self->sanatize_user_obj($updated_user);
 
     $c->render(status => Constants::HTTP_OK, json => $updated_user);
   } else {
@@ -216,6 +273,7 @@ sub update_user ($self, $c) {
   }
 }
 
+# handles a user password change submission
 sub do_password_change ($self, $c) {
 
   my $existing_password = $c->req->param('current-password');
@@ -271,11 +329,11 @@ sub do_password_change ($self, $c) {
 
   # make sure we pass the complexity checks
   elsif (!$self->password_util->check_complexity($new_password, $self->config->{password_complexity})) {
-    $c->flash({return_to => $c->flash('return_to'), error_msg => 'New Password does not meet complexity requirements'});
+    $c->flash({return_to => $c->flash('return_to'), error_msg => 'New Password does not meet complexity requirements', complexity => $self->config->{password_complexity}});
     $c->redirect_to('/auth/password/change',);
   }
 
-# if we make it here, then change the password in the database, and update the user's session
+  # if we make it here, then change the password in the database, and update the user's session
   else {
 
     $self->db->update(
@@ -315,6 +373,7 @@ sub get_days_since_gmstamp ($self, $time) {
   }
 }
 
+# deletes a single user - given their email
 sub delete_single_user ($self, $c) {
   my $username = lc $c->req->param('email');
   if (!$self->_user_exists($username)) {
@@ -323,6 +382,91 @@ sub delete_single_user ($self, $c) {
   }
 
   $self->db->delete('users', {email => $username});
+}
+
+# handler to check a submitted MFA code against the server's
+# generated code.
+sub check_mfa_code ($self, $c) {
+
+  # pull users record...so we can get their MFA secret
+  my $record = $self->_get_user($c->session->{user}->{email});
+  if (!$record || !$record->{mfa_secret} || !$record->{is_mfa}) {
+    $c->render(text => 'This is not a valid account for MFA');
+    return;
+  }
+
+  # load the code, check the code
+  my $auth = Auth::GoogleAuth->new;
+  $auth = Auth::GoogleAuth->new({
+    secret => $self->config->{mfa_secret} // 'secret',
+    issuer => $self->config->{mfa_issuer} // 'mojo_gateway',
+    key_id => $self->config->{mfa_key_id} // 'login',
+  });
+  $auth->secret32($record->{mfa_secret});
+
+  my $code = $c->req->param('mfa-entry');
+  if (!defined($code) || !$auth->verify($code)) {
+
+    # bad request, try again
+    $c->flash({return_to => $c->flash('return_to')});
+    $c->render('mfa_entry_page', mfa_failed => 1);
+  } else {
+
+    # they matched
+    # update person's last login time, set the session to the user's record
+    # and return them to where they were trying to go to (or default to /)
+    delete $c->session->{user_pass_ok};
+    $self->db->update("users", {last_login => $self->get_gmstamp()}, {email => $record->{email}});
+    $c->session->{user} = {email => $record->{email}};
+    $c->redirect_to($c->flash('return_to') // '/');
+  }
+}
+
+# hander that presents the QR code page for when a user
+# enrolls into MFA
+sub set_up_mfa ($self, $c) {
+  my $auth = Auth::GoogleAuth->new;
+  $auth = Auth::GoogleAuth->new({
+    secret => $self->config->{mfa_secret} // 'secret',
+    issuer => $self->config->{mfa_issuer} // 'mojo_gateway',
+    key_id => $self->config->{mfa_key_id} // 'login',
+  });
+
+  my $secret32 = $auth->generate_secret32;
+  my $png_url  = $auth->qr_code($secret32);
+
+  # put secret in flash for the finalization stage
+  $c->flash({qr_code => $secret32});
+
+  # render the mfa qr page
+  $c->render('mfa_qr_page', qr_code_url => $png_url);
+}
+
+# handler for when user is done with the MFA init/enroll
+# QR code page, here we write the secret to the database and
+# then attempt to forward them to their original destination
+sub finalize_mfa_setup ($self, $c) {
+  delete $c->session->{mfa_setup_required};
+  $c->flash({return_to => $c->flash('return_to')});
+
+  # store this users secret
+  $self->db->update('users', {mfa_secret => $c->flash('qr_code')}, {email => $c->session->{user}->{email}});
+
+  $c->redirect_to($c->flash('return_to') // '/');
+}
+
+# helper to mark all accounts as MFA enabled on app bootstrap
+# note that unmarking that setting in the config will NOT disable
+# MFA from accounts...
+sub mark_all_as_mfa ($self) {
+  if ( $self->config->{mfa_force_on_all}
+    && $self->config->{mfa_secret}
+    && $self->config->{mfa_issuer}
+    && $self->config->{mfa_key_id}) {
+
+    # enable MFA for all users
+    $self->db->update('users', {is_mfa => 1});
+  }
 }
 
 1;

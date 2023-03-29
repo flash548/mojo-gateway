@@ -25,7 +25,7 @@ subtest 'Check cannot overwrite reserved routes' => sub {
   };
 
   eval {
-    Test::Mojo->new('Gateway', $options,);
+    Test::Mojo->new('Gateway', $options);
   };
 
   ok $@, 'Test that App failed to launch';

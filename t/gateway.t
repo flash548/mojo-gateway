@@ -42,6 +42,21 @@ subtest 'Test User Login/Logout/Admin operations' => sub {
   $t->get_ok('/api')->status_is(Constants::HTTP_OK)->content_like(qr/login/i, 'Test Login screen landing 3')
     ->element_exists('[name=username]')->element_exists('[name=password]');
 
+  # do a bad login and we get error message
+  $t->post_ok('/auth/login', form => {username => 'admin@test.com', password => ''})
+    ->status_is(Constants::HTTP_OK)
+    ->content_like(qr/ Login failed: User or password incorrect!/, 'Make sure we get error message on bad login 1');
+
+  # do a bad login and we get error message
+  $t->post_ok('/auth/login', form => {username => 'admin@test.com', password => undef})
+    ->status_is(Constants::HTTP_OK)
+    ->content_like(qr/ Login failed: User or password incorrect!/, 'Make sure we get error message on bad login 2');
+
+  # do a bad login and we get error message
+  $t->post_ok('/auth/login', form => {username => undef, password => undef})
+    ->status_is(Constants::HTTP_OK)
+    ->content_like(qr/ Login failed: User or password incorrect!/, 'Make sure we get error message on bad login 3');
+
   # do a login and we dont get the login form anymore
   $t->post_ok('/auth/login', form => {username => 'admin@test.com', password => 'testpass'})
     ->status_is(Constants::HTTP_OK)->content_unlike(qr/login/i, 'Make sure we are not at the login page anymore');
@@ -207,6 +222,12 @@ subtest 'Test User Login/Logout/Admin operations' => sub {
   # trust but verify user deleted
   $t->get_ok('/admin/users')->status_is(Constants::HTTP_OK)
     ->content_unlike(qr/test\@test.com/, 'No more test@test.com user');
+
+  # check that user passwords are not in the get-all
+  for (my $i=0;$i < $t->app->db_conn->db->select('users')->hashes->size;$i++) {
+    $t->get_ok('/admin/users')->status_is(Constants::HTTP_OK)->json_hasnt("/${i}/password");
+    $t->get_ok('/admin/users')->status_is(Constants::HTTP_OK)->json_hasnt("/${i}/mfa_secret");
+  }
 };
 
 subtest 'Test user account updates cannot modify read-only fields' => sub {

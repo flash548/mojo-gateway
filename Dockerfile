@@ -8,6 +8,7 @@ RUN cpanm install Mojo::JWT
 RUN cpanm install Date::Parse
 RUN cpanm install Crypt::Bcrypt
 RUN cpanm install Data::Entropy::Algorithms
+RUN cpanm install Auth::GoogleAuth;
 
 EXPOSE 3000
 

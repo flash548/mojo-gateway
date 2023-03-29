@@ -173,7 +173,7 @@ Desired features in order of most likely implementation:
 
 - Set optional config param for max attempts of unsuccessful login (e.g. lock account after 3 bad attempts)
 - Admin lock-out account
-- MFA option - integration with Google Authenticator
+- ✅ MFA option - integration with Google Authenticator
 - Add forgot-password feature -- vague at this point
 - Allow some type of configurable, self-registration - not sure what that looks like yet
 - Integration with AWS SES or the like - for email notifications
@@ -191,7 +191,7 @@ This service's pages are rendered using the Astro UXDS from Rocket Communication
 
 ## Credits
 
-- Mojolicious Framework (https://github.com/mojolicious/mojo) and various other CPAN libraries
+- Mojolicious Framework (https://github.com/mojolicious/mojo) and various other CPAN libraries (e.g. Auth::GoogleAuth)
 - Astro UXDS from RocketCommunicationsInc (https://github.com/RocketCommunicationsInc)
 - Ag-Grid Community (v23.2.1) (www.ag-grid.com)
 - Preact.js (https://github.com/preactjs/preact)
