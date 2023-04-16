@@ -4,6 +4,7 @@
   "mfa_issuer": "mojo_gateway",
   "mfa_key_id": "login",
   "mfa_force_on_all": false,
+  "max_login_attempts": 3,
   "enable_logging": true,
   "logging_ignore_paths": [ "/admin/http_logs", "/favicon", "/js", "/css", "/icons", "/fonts" ],
   "secret": "<%= $ENV{SECRET} // 'change_this' %>",

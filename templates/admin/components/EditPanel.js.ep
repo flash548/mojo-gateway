@@ -12,6 +12,7 @@ export function EditPanel(props) {
       is_admin: false,
       user_id: 0,
       is_mfa: false,
+      locked: false,
     },
   });
 
@@ -178,6 +179,18 @@ export function EditPanel(props) {
                   setState({
                     ...state,
                     selectedUser: { ...state.selectedUser, is_admin: checked },
+                  })}
+              />
+            </div>
+            <div class="rux-form-field mb2">
+              <${Checkbox}
+                id="user-lockout"
+                label="Acct Locked?"
+                checked=${state.selectedUser.locked}
+                onClick=${(checked) =>
+                  setState({
+                    ...state,
+                    selectedUser: { ...state.selectedUser, locked: checked },
                   })}
               />
             </div>

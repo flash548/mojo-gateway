@@ -16,8 +16,8 @@ has 'user_service';
 #
 # Content-Type: 'text/html'
 sub login_page_get ($self, $c) {
-  $c->flash({return_to => $c->flash('return_to') // '/'});
-  $c->render('login_page');
+  $c->flash({return_to => $c->flash('return_to') // '/' });
+  $c->render('login_page', acct_locked => $c->flash('acct_locked'));
 }
 
 # GET /logout
