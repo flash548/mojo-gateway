@@ -31,9 +31,9 @@ export function EditPanel(props) {
     });
     let body = await result.json();
     if (result.status === 201 || result.status === 200) {
-      isEdit ? userObj.onEditUser(body) : userObj.onAddUser(body);
       setState({ ...state, isSubmitting: false, resultMessage: "Success!" });
       showToast(isEdit ? "User Updated" : "User Created", true);
+      isEdit ? userObj.onEditUser(body) : userObj.onAddUser(body);
     } else {
       setState({ ...state, isSubmitting: false, resultMessage: "Failed!" });
       showToast(body.message);
