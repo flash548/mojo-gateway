@@ -1,0 +1,32 @@
+export function Modal(props) {
+  return html`
+    <div
+      class="flex justify-center items-center"
+      style="z-index: 9999; position: absolute; top: 0; left: 0; height: 100vh; width: 100vw; background: rgba(0,0,0,0.7)"
+    >
+      <div class="rux-modal">
+        <div class="rux-modal__titlebar"><h1>${props.title}</h1></div>
+        <div class="rux-modal__content">${props.message}</div>
+        <div class="pa2 flex justify-between flex">
+          <button
+            type="button"
+            onClick=${() => props.onCancel()}
+            class="rux-button rux-button--outline"
+          >
+            ${props.cancelText}
+          </button>
+          <button
+            type="button"
+            onClick=${() => props.onSubmit()}
+            class="rux-button"
+            style=${props.destructive
+              ? "background-color: var(--statusDarkCritical)"
+              : ""}
+          >
+            ${props.okText}
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}

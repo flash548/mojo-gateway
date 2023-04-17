@@ -52,6 +52,7 @@ export function UserTable(props) {
           </th>
           <th class="tc">Admin?</th>
           <th class="tc">Password Reset?</th>
+          <th class="tc">Locked?</th>
           <th>Last Reset</th>
           <th>Last Login</th>
           <th></th>
@@ -65,13 +66,20 @@ export function UserTable(props) {
                 <td>${user.email}</td>
                 <td>
                   <span class="w-100 flex justify-center">
-                    <${Status} status=${user.is_admin ? "normal" : "off"} />
+                    <${Status} status=${user.is_admin ? "standby" : "off"} />
                   </span>
                 </td>
                 <td>
                   <span class="w-100 flex justify-center">
                     <${Status}
                       status=${user.reset_password ? "standby" : "off"}
+                    />
+                  </span>
+                </td>
+                <td>
+                  <span class="w-100 flex justify-center">
+                    <${Status}
+                      status=${user.locked ? "standby" : "off"}
                     />
                   </span>
                 </td>

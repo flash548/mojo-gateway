@@ -3,6 +3,7 @@ export function UsersPage() {
     users: [],
     show: false,
     selectedUser: {},
+    confirmDelete: false,
   });
 
   useEffect(() => {
@@ -16,7 +17,9 @@ export function UsersPage() {
       });
   }, []);
 
-  function deleteUser(user) {
+  function deleteUser() {
+    let user = state.selectedUser;
+
     fetch(`/admin/users?email=${user.email.toLowerCase()}`, {
       method: "DELETE",
     })
@@ -26,11 +29,13 @@ export function UsersPage() {
           users: state.users.filter(
             (u) => u.email.toLowerCase() !== user.email.toLowerCase()
           ),
+          confirmDelete: false,
         });
         showToast("User Deleted", true);
       })
       .catch((err) => {
         showToast(err.message);
+        setState({ ...state, confirmDelete: false });
       });
   }
 
@@ -57,7 +62,7 @@ export function UsersPage() {
         title=${state.action}
         backgroundClicked=${() => setState({ ...state, show: false })}
         onAddUser=${(user) =>
-          setState({ ...state, users: [...state.users, user] })}
+          setState({ ...state, users: [...state.users, user], show: false })}
         onEditUser=${(user) => {
           const index = state.users.findIndex(
             (elem) => elem.email === user.email
@@ -65,11 +70,21 @@ export function UsersPage() {
           if (index !== undefined) {
             const updatedState = [...state.users];
             updatedState[index] = user;
-            setState({ ...state, users: [...updatedState] });
+            setState({ ...state, users: [...updatedState], show: false });
           }
         }}
         selectedUser=${state.selectedUser}
         closeClicked=${() => setState({ ...state, show: false })}
+      />`}
+      ${state.confirmDelete &&
+      html`<${Modal}
+        title="Delete User?"
+        okText="Delete"
+        cancelText="Cancel"
+        onSubmit=${() => deleteUser()}
+        onCancel=${() => setState({ ...state, confirmDelete: false })}
+        destructive
+        message="Are you sure you want to delete ${state.selectedUser.email}?"
       />`}
       <${UserTable}
         users=${state.users}
@@ -80,7 +95,8 @@ export function UsersPage() {
             show: true,
             selectedUser: { ...user },
           })}
-        rowDelete=${deleteUser}
+        rowDelete=${(user) =>
+          setState({ ...state, selectedUser: user, confirmDelete: true })}
       />
     </div>
   `;

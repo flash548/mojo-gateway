@@ -9,5 +9,6 @@ use constant HTTP_BAD_REQUEST => 400;
 use constant HTTP_FORBIDDEN   => 403;
 use constant HTTP_NOT_FOUND   => 404;
 use constant HTTP_CONFLICT    => 409;
+use constant HTTP_REDIRECT    => 302;
 
 1;

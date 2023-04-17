@@ -15,10 +15,14 @@
           <h2><%= app->config->{login_page_title} %></h2>
         </div>
         <div>
-          <% if (stash 'login_failed') { %>
-          <div style="color: var(--statusDarkSerious)">
-            Login failed: User or password incorrect!
-          </div>
+          <% if (stash 'acct_locked') { %>
+            <div style="color: var(--statusDarkSerious)">
+              Login failed: This account is locked!
+            </div>
+          <%} elsif (stash 'login_failed') { %>
+            <div style="color: var(--statusDarkSerious)">
+              Login failed: User or password incorrect!
+            </div>
           <%} %>
           <form action="/auth/login" method="POST">
             <input

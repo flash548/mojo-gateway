@@ -57,6 +57,7 @@
          %= include 'admin/components/Icon', format => 'js'
          %= include 'admin/components/Status', format => 'js'
          %= include 'admin/components/Checkbox', format => 'js'
+         %= include 'admin/components/Modal', format => 'js'
          %= include 'admin/pages/UsersPage', format => 'js'
          %= include 'admin/pages/LogsPage', format => 'js'
 

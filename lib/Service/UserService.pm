@@ -12,7 +12,7 @@ has 'config';
 has 'password_util' => sub { Password::Utils->new };
 
 # other fields/keys ALLOWED to POST/PUT (otherwise they're ignored)
-has 'user_obj_allowed_fields' => sub { ['reset_password', 'first_name', 'last_name', 'is_admin', 'user_id', 'is_mfa'] };
+has 'user_obj_allowed_fields' => sub { ['reset_password', 'first_name', 'last_name', 'is_admin', 'user_id', 'is_mfa', 'locked'] };
 
 # creates a default admin user if it doesnt exist
 sub create_admin_user ($self) {
@@ -47,6 +47,18 @@ sub check_user_status ($self, $c) {
     return undef;
   }
 
+  # check if account is locked
+  if ($record->{locked}) {
+    # set return_to value to go back to initially requested url
+    # dont allow redirect back to itself - default to /
+    if ($c->req->url =~ m/auth\/login/ || !defined($c->req->url)) {
+      $c->req->url('/');
+    }
+    $c->flash({return_to => $c->req->url, acct_locked => 1});
+    $c->redirect_to('/login');
+    return undef;
+  }
+
   # covers the case where we log in with user/pass on an mfa acct, then we nav away and come back 
   # and we haven't done the mfa yet
   if ($c->session->{user_pass_ok} && $record->{is_mfa} && $c->req->url !~ /auth\/mfa\/entry/) {
@@ -54,6 +66,7 @@ sub check_user_status ($self, $c) {
     $c->session->{user_pass_ok} = 1;
     $c->flash({return_to => $c->flash('return_to')});
     $c->redirect_to('/auth/mfa/entry');
+    return undef;
   }
 
   # if user record shows we need to reset-password, and we're not already at the password path,
@@ -116,7 +129,7 @@ sub check_user_status ($self, $c) {
 # handles the login process
 sub do_login ($self, $c) {
 
-  if (!$c->req->param('username') || !$c->req->param('password')) {
+  if (!$c->req->param('username') || !defined($c->req->param('password'))) {
     $c->render('login_page', login_failed => 1);
     return;
   }
@@ -151,11 +164,18 @@ sub do_login ($self, $c) {
 
       # update person's last login time, set the session to the user's record
       # and return them to where they were trying to go to (or default to /)
-      $self->db->update("users", {last_login => $self->get_gmstamp()}, {email => $username});
+      $self->db->update("users", {last_login => $self->get_gmstamp(), bad_attempts => 0}, {email => $username});
       $c->redirect_to($c->flash('return_to') // '/');
     }
   } else {
-    $c->render('login_page', login_failed => 1, user => $username);
+    # see if we're to allow a max number of unsuccessful password login attempts
+    my $locked = 0;
+    if (defined($self->config->{max_login_attempts})) {
+      my $bad_attempts = ($record->{bad_attempts} // 0) + 1;
+      $locked = $bad_attempts >= $self->config->{max_login_attempts};
+      $self->db->update("users", { bad_attempts => $bad_attempts, locked => $locked }, {email => $username});
+    } 
+    $c->render('login_page', acct_locked => $locked, login_failed => 1, user => $username);
   }
 }
 
@@ -242,10 +262,16 @@ sub update_user ($self, $c) {
     for my $key (keys %{$user}) {
       if (defined($user->{$key})) {
 
-        # check if its a password field
+        # check if its a password field, and its defined/truthy then update password field
         if ($key eq 'password' && defined($user->{password}) && $user->{password} ne '') {
           $existing_user->{password}   = $self->password_util->encode_password($user->{password});
           $existing_user->{last_reset} = $self->get_gmstamp();
+        } elsif ($key eq 'locked' &&  defined($user->{locked}) && !$user->{locked}) {
+
+          # if its the 'locked' field, and its defined and falsy, then reset not just 'locked'
+          # but also reset any bad attempts
+          $existing_user->{locked} = 0;
+          $existing_user->{bad_attempts} = 0;
         } elsif (grep { $key =~ m/$_/ } @{$self->user_obj_allowed_fields}) {
 
           # if its an allowed field for the body model, then add it to the existing_user obj
@@ -340,6 +366,8 @@ sub do_password_change ($self, $c) {
       "users",
       { password       => $self->password_util->encode_password($new_password),
         reset_password => 0,
+        bad_attempts => 0,
+        bad_attempts => 0,
         last_reset     => $self->get_gmstamp()
       },
       {email => $c->session->{user}->{email}}

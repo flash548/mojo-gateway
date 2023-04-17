@@ -222,6 +222,7 @@ sub startup ($self) {
 sub validate_config ($self) {
   my $config = joi->object->props(
     login_page_title        => joi->string,
+    max_login_attempts      => joi->number->positive,
     mfa_secret              => joi->string,
     mfa_force_on_all        => joi->boolean,
     mfa_issuer              => joi->string,
