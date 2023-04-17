@@ -181,8 +181,8 @@ Within the admin interface you can:
 - ✅ Audit Log
 - ✅ MFA option - integration with Google Authenticator
 - 🔳 Console/Debug logging
-- 🔳 Set optional config param for max attempts of unsuccessful login (e.g. lock account after 3 bad attempts)
-- 🔳 Admin lock-out account
+- ✅ Set optional config param ("max_login_attempts") for max attempts of unsuccessful login (e.g. lock account after 3 bad attempts)
+- ✅ Admin lock-out account
 - 🔳 Add forgot-password feature -- vague at this point
 - 🔳 Allow some type of configurable, self-registration - not sure what that looks like yet
 - 🔳 Integration with AWS SES or the like - for email notifications
