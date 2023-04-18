@@ -233,6 +233,8 @@ sub validate_config ($self) {
     admin_user              => joi->email->required,
     admin_pass              => joi->string(1)->required,
     db_type                 => joi->string->enum(["pg", "sqlite"]),
+    db_user                 => joi->string,
+    db_password             => joi->string,
     db_uri                  => joi->string,
     cookie_name             => joi->string,
     strip_headers_to_client => joi->array,
