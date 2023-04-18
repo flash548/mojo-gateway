@@ -49,7 +49,7 @@ sub check_user_status ($self, $c) {
 
   # put the user record into the stash for reference later on if needed
   $c->stash({record => $record});
-  
+
   # check if account is locked
   if ($record->{locked}) {
     # set return_to value to go back to initially requested url
@@ -176,7 +176,7 @@ sub do_login ($self, $c) {
     if (defined($self->config->{max_login_attempts})) {
       my $bad_attempts = ($record->{bad_attempts} // 0) + 1;
       $locked = $bad_attempts >= $self->config->{max_login_attempts};
-      $self->db->update("users", { bad_attempts => $bad_attempts, locked => $locked }, {email => $username});
+      $self->db->update("users", { bad_attempts => $bad_attempts, locked => $locked ? 'true' : 'false' }, {email => $username});
     } 
     $c->render('login_page', acct_locked => $locked, login_failed => 1, user => $username);
   }
