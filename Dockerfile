@@ -9,6 +9,7 @@ RUN cpanm install Date::Parse
 RUN cpanm install Crypt::Bcrypt
 RUN cpanm install Data::Entropy::Algorithms
 RUN cpanm install Auth::GoogleAuth;
+RUN cpanm install JSON::Validator::Joi;
 
 EXPOSE 3000
 
