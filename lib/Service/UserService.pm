@@ -47,6 +47,9 @@ sub check_user_status ($self, $c) {
     return undef;
   }
 
+  # put the user record into the stash for reference later on if needed
+  $c->stash({record => $record});
+  
   # check if account is locked
   if ($record->{locked}) {
     # set return_to value to go back to initially requested url

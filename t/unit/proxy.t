@@ -40,7 +40,7 @@ my $config = {
     '/s' => {
       uri        => "http://localhost:3000/frontend",
       enable_jwt => 1,
-      jwt_claims => {email => '$c->session->{user}->{email}'},
+      jwt_claims => {email => '$c->session->{user}->{email}', user_id => '$c->stash("record")->{email}'},
     },
   },
   default_route       => {uri => "http://localhost:3000/frontend", enable_jwt => 0},
@@ -66,11 +66,18 @@ subtest 'Test JWT injected if config says to' => sub {
   # test that the JWT was injected as spec'd in the config json
   $t->get_ok('/s')->status_is(Constants::HTTP_OK)
     ->header_exists('Authorization', 'Authorization header present as expected')->header_is('location' => '/frontend')
-    ->header_is('content_type' => 'application/json')->tap(sub ($t) {
-    my $jwt = Mojo::JWT->new(secret => 'secret')->decode(
-      do { my $val = $t->tx->res->headers->authorization; $val =~ s/Bearer\s//g; $val; }
-    );
-    return is('admin@test.com', $jwt->{email});
+    ->header_is('content_type' => 'application/json')
+    ->tap(sub ($t) {
+      my $jwt = Mojo::JWT->new(secret => 'secret')->decode(
+        do { my $val = $t->tx->res->headers->authorization; $val =~ s/Bearer\s//g; $val; }
+      );
+      return is('admin@test.com', $jwt->{email});
+    })
+    ->tap(sub ($t) {
+      my $jwt = Mojo::JWT->new(secret => 'secret')->decode(
+        do { my $val = $t->tx->res->headers->authorization; $val =~ s/Bearer\s//g; $val; }
+      );
+      return is('admin@test.com', $jwt->{user_id});
     });
 
   # should be no JWT on the default route as spec'd in the config json

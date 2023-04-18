@@ -64,7 +64,7 @@ Example configuration file that uses a Postgres database:
       "requires_login": true,
       "jwt_claims": {
         "email": "$c->session->{user}->{email}",
-        "usercertificate": "\"Tron.Developer.\" . $c->session->{user}->{user_id}"
+        "usercertificate": "\"Tron.Developer.\" . $c->stash('record')->{user_id}"
       },
       "other_headers": {
         "x-forwarded-client-cert": "some other header data"
