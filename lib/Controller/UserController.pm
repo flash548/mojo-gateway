@@ -16,7 +16,7 @@ has 'user_service';
 #
 # Content-Type: 'text/html'
 sub login_page_get ($self, $c) {
-  $c->flash({return_to => $c->flash('return_to') // '/' });
+  $c->flash({return_to => $c->flash('return_to') // $self->user_service->get_fallback_landing_page() });
   $c->render('login_page', acct_locked => $c->flash('acct_locked'));
 }
 
@@ -30,7 +30,7 @@ sub login_page_get ($self, $c) {
 # Content-Type: 'text/html'
 sub logout_get ($self, $c) {
   $c->session(expires => 1);
-  $c->flash({return_to => '/'});
+  $c->flash({return_to => $self->user_service->get_fallback_landing_page()});
   $c->redirect_to('/login');
 }
 
@@ -61,7 +61,7 @@ sub login_post ($self, $c) {
 sub password_change_form_get ($self, $c) {
 
   # preserve the flash value
-  $c->flash({return_to => $c->flash('return_to') // '/'});
+  $c->flash({return_to => $c->flash('return_to') // $self->user_service->get_fallback_landing_page()});
 
   # render the change_password form
   $c->render('password_change');

@@ -8,7 +8,7 @@ use lib curfile->dirname->sibling('lib')->to_string;
 use Mojolicious::Commands;
 
 # copy over custom content to overlay
-system('cp -R ./custom/public/* ./public/') if -d './custom/public';
+system('cp -R ./custom/public/* ./public/')       if -d './custom/public';
 system('cp -R ./custom/templates/* ./templates/') if -d './custom/templates';
 
 # Start command line interface for application

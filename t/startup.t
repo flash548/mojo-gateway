@@ -15,18 +15,16 @@ subtest 'Check cannot overwrite reserved routes' => sub {
     secret     => 'secret',
     jwt_secret => 'secret',
     routes     => {
-      '/'         => {uri            => "http://localhost:8080/frontend", enable_jwt => 1, requires_login => 1},
+      '/'      => {uri            => "http://localhost:8080/frontend", enable_jwt => 1, requires_login => 1},
       '/login' => {requires_login => 0, uri => "http://localhost:8080/everyone"},
-      '/api'      => {uri            => "http://localhost:8080/api", enable_jwt => 1, requires_login => 1}
+      '/api'   => {uri            => "http://localhost:8080/api", enable_jwt => 1, requires_login => 1}
     },
     default_route       => {uri => 'https://localhost:8080/frontend', requires_login => 1},
     password_valid_days => 60,
     password_complexity => {min_length => 8, alphas => 1, numbers => 1, specials => 1, spaces => 0}
   };
 
-  eval {
-    Test::Mojo->new('Gateway', $options);
-  };
+  eval { Test::Mojo->new('Gateway', $options); };
 
   ok $@, 'Test that App failed to launch';
 };
@@ -47,9 +45,7 @@ subtest 'Catches missing (required) config key' => sub {
     password_complexity => {min_length => 8, alphas => 1, numbers => 1, specials => 1, spaces => 0}
   };
 
-  eval {
-    Test::Mojo->new('Gateway', $options,);
-  };
+  eval { Test::Mojo->new('Gateway', $options,); };
 
   ok $@, 'Test that App failed to launch';
   ok grep { $_ =~ m!/admin_user: Missing property! } $@;
