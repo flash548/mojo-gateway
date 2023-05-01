@@ -9,7 +9,6 @@
 -ci=2    # Continuation indentation is 2 columns
 -vt=2    # High vertical tightness
 -pt=2    # High parenthesis tightness
--bt=2    # High brace tightness
 -sbt=2   # High square bracket tightness
 -wn      # Weld nested containers
 -isbc    # Don't indent comments without leading space
@@ -20,3 +19,5 @@
 -ce      # cuddled elses
 -bar     # brace on the right even for multiple-line test expressions
 -nsbl     # sub brace on the right 
+-bbt=0
+-bt=0

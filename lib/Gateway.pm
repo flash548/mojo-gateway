@@ -2,9 +2,9 @@ package Gateway;
 use Mojo::Base 'Mojolicious', -signatures;
 use Mojo::Pg;
 use Mojo::SQLite;
-use JSON::Validator::Joi qw(joi);
 
 use lib qw(./lib);
+use Service::ConfigValidationService;
 use Service::UserService;
 use Service::Proxy;
 use Service::HttpLogService;
@@ -28,8 +28,8 @@ sub startup ($self) {
   my $config = $self->plugin('JSONConfig');
 
   # validate our config before doing anything
-  $self->validate_config();
-  
+  Service::ConfigValidationService->new(config => $self->config)->validate_config();
+
   $self->secrets([$config->{secret}]);
   $self->sessions->cookie_name($config->{cookie_name} // 'mojolicious');
   $self->hook(
@@ -217,86 +217,6 @@ sub startup ($self) {
       }
     );
   }
-}
-
-sub validate_config ($self) {
-  my $config = joi->object->props(
-    login_page_title        => joi->string,
-    max_login_attempts      => joi->number->positive,
-    mfa_secret              => joi->string,
-    mfa_force_on_all        => joi->boolean,
-    mfa_issuer              => joi->string,
-    mfa_key_id              => joi->string,
-    enable_logging          => joi->boolean,
-    logging_ignore_paths    => joi->array,
-    secret                  => joi->string->min(1)->required,
-    admin_user              => joi->email->required,
-    admin_pass              => joi->string(1)->required,
-    db_type                 => joi->string->enum(["pg", "sqlite"]),
-    db_user                 => joi->string,
-    db_password             => joi->string,
-    db_uri                  => joi->string,
-    cookie_name             => joi->string,
-    strip_headers_to_client => joi->array,
-    jwt_secret              => joi->string->required,
-    routes                  => joi->object->required,
-    password_valid_days     => joi->number->positive->required,
-    password_complexity     => joi->object->required,
-    default_route           => joi->object->required,
-    test                    => joi->boolean,
-    config_override         => joi->boolean    # this is put in by Mojo on config overrides in testing
-  );
-
-  if ($self->config->{mfa_secret} || $self->config->{mfa_issuer} || $self->config->{mfa_key_id}) {
-    die "MFA secret/issuer/key_id must ALL be set if any of the others are set" unless 
-      $self->config->{mfa_secret} && $self->config->{mfa_issuer} && $self->config->{mfa_key_id};
-  }
-
-  say "Validating config...";
-  my @errors = $config->strict->validate($self->config);
-  if (@errors) {
-    die @errors;
-  }
-
-  my $password_complex_config = joi->object->props(
-    min_length => joi->number->min(1)->required,
-    alphas     => joi->number->min(0)->required,
-    numbers    => joi->number->min(0)->required,
-    specials   => joi->number->min(0)->required,
-    spaces     => joi->boolean->required
-  );
-
-  say "Validating password complexity config...";
-  @errors = $password_complex_config->strict->validate($self->config->{password_complexity});
-  if (@errors) {
-    die @errors;
-  }
-
-  my $default_route_config = joi->object->props(
-    uri            => joi->string->required,
-    enable_jwt     => joi->boolean,
-    requires_login => joi->boolean,
-    jwt_claims     => joi->object,
-    transforms     => joi->array,
-    other_headers  => joi->object
-  );
-
-  say "Validating default route config...";
-  @errors = $default_route_config->validate($self->config->{default_route});
-  if (@errors) {
-    die @errors;
-  }
-
-  say "Validating route config...";
-  for my $route (keys($self->config->{routes}->%*)) {
-    say "On route " . $route;
-    @errors = $default_route_config->validate($self->config->{routes}->{$route});
-    if (@errors) {
-      die @errors;
-    }
-  }
-
-  say "App Config - Valid ✅";
 }
 
 1;

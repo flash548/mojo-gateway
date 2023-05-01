@@ -7,8 +7,18 @@ has 'ua';
 
 # takes the request object ($c) named route from the config
 sub proxy ($self, $c, $name) {
-  my $request    = $c->req->clone;
   my $route_spec = $self->config->{routes}->{$name} // $self->config->{default_route};
+  if (defined($route_spec->{template_name})) {
+    # this isn't a request to be proxied, its just a local template render (or inline render)
+    if ($route_spec->{template_name} =~ m/^<%=/) {
+      $c->render(inline => $route_spec->{template_name});
+    } else {
+      $c->render(template => $route_spec->{template_name});
+    }
+    return;
+  }
+
+  my $request    = $c->req->clone;
   my $uri        = $route_spec->{uri};
 
   if ( $route_spec->{rewrite_path}

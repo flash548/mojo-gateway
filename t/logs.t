@@ -22,7 +22,6 @@ my $options = {
 };
 
 
-
 subtest 'Test Logging Feature - Disabled' => sub {
   my $t = Test::Mojo->new('Gateway', $options,);
   $t->ua->max_redirects(3);
@@ -51,17 +50,15 @@ subtest 'Test Logging Feature - Enabled' => sub {
     ->json_has('/results', 'Allowed Endpoint');
 
   # check that we get a 400 on logs fetch
-  $t->get_ok('/admin/http_logs?pageSize=25&page=-1')
-    ->status_is(Constants::HTTP_BAD_REQUEST, 'Bad Input Parameter - 1')
+  $t->get_ok('/admin/http_logs?pageSize=25&page=-1')->status_is(Constants::HTTP_BAD_REQUEST, 'Bad Input Parameter - 1')
     ->json_is('/message' => 'Page cannot be less than 0', 'Bad Page Number');
 
-  $t->get_ok('/admin/http_logs?pageSize=-10&page=0')
-    ->status_is(Constants::HTTP_BAD_REQUEST, 'Bad Input Parameter - 2')
+  $t->get_ok('/admin/http_logs?pageSize=-10&page=0')->status_is(Constants::HTTP_BAD_REQUEST, 'Bad Input Parameter - 2')
     ->json_is('/message' => 'Page Size must be 1 to 1000', 'Bad Page Min Size');
 
   $t->get_ok('/admin/http_logs?pageSize=10000&page=0')
     ->status_is(Constants::HTTP_BAD_REQUEST, 'Bad Input Parameter - 3')
-     ->json_is('/message' => 'Page Size must be 1 to 1000', 'Bad Page Max Size');
+    ->json_is('/message' => 'Page Size must be 1 to 1000', 'Bad Page Max Size');
 
   $t->get_ok('/admin/http_logs?pageSize=25&page=0&fromDate=2022-21:02:000000')
     ->status_is(Constants::HTTP_BAD_REQUEST, 'Bad Input Parameter - 4')
@@ -75,8 +72,8 @@ subtest 'Test Logging Feature - Enabled' => sub {
 subtest 'Test Ignore Paths for Logging' => sub {
 
   my $logging_enabled_options = $options;
-  $logging_enabled_options->{enable_logging} = 1;
-  $logging_enabled_options->{logging_ignore_paths} = [ '/everyone' ];
+  $logging_enabled_options->{enable_logging}       = 1;
+  $logging_enabled_options->{logging_ignore_paths} = ['/everyone'];
 
   my $t = Test::Mojo->new('Gateway', $logging_enabled_options);
   $t->ua->max_redirects(3);
@@ -97,11 +94,9 @@ subtest 'Test Ignore Paths for Logging' => sub {
   };
 
   # check that request to /everyone isn't in the http logs and ignored
-  $t->get_ok('/admin/http_logs')->status_is(Constants::HTTP_OK)
-    ->json_has('/results', 'Allowed Endpoint')
+  $t->get_ok('/admin/http_logs')->status_is(Constants::HTTP_OK)->json_has('/results', 'Allowed Endpoint')
     ->$json_coll_has('/everyone', 'No occurances of /everyone path request');
 };
-
 
 
 done_testing();

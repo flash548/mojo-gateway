@@ -168,7 +168,7 @@ sub do_login ($self, $c) {
       # update person's last login time, set the session to the user's record
       # and return them to where they were trying to go to (or default to /)
       $self->db->update("users", {last_login => $self->get_gmstamp(), bad_attempts => 0}, {email => $username});
-      $c->redirect_to($c->flash('return_to') // '/');
+      $c->redirect_to($c->flash('return_to') // $self->get_fallback_landing_page());
     }
   } else {
     # see if we're to allow a max number of unsuccessful password login attempts
@@ -376,7 +376,7 @@ sub do_password_change ($self, $c) {
       {email => $c->session->{user}->{email}}
     );
 
-    $c->redirect_to($c->flash('return_to') // '/');
+    $c->redirect_to($c->flash('return_to') // $self->get_fallback_landing_page());
   }
 }
 
@@ -449,7 +449,7 @@ sub check_mfa_code ($self, $c) {
     delete $c->session->{user_pass_ok};
     $self->db->update("users", {last_login => $self->get_gmstamp()}, {email => $record->{email}});
     $c->session->{user} = {email => $record->{email}};
-    $c->redirect_to($c->flash('return_to') // '/');
+    $c->redirect_to($c->flash('return_to') // $self->get_fallback_landing_page());
   }
 }
 
@@ -483,7 +483,7 @@ sub finalize_mfa_setup ($self, $c) {
   # store this users secret
   $self->db->update('users', {mfa_secret => $c->flash('qr_code')}, {email => $c->session->{user}->{email}});
 
-  $c->redirect_to($c->flash('return_to') // '/');
+  $c->redirect_to($c->flash('return_to') // $self->get_fallback_landing_page());
 }
 
 # helper to mark all accounts as MFA enabled on app bootstrap
@@ -499,5 +499,14 @@ sub mark_all_as_mfa ($self) {
     $self->db->update('users', {is_mfa => 1});
   }
 }
+
+sub get_fallback_landing_page($self) {
+  if (defined($self->config->{landing_page}) && $self->config->{landing_page}) {
+    return $self->config->{landing_page};
+  } else {
+    return '/';
+  }
+}
+
 
 1;
