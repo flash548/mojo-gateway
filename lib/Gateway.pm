@@ -113,14 +113,24 @@ sub startup ($self) {
       if !defined($config->{routes}->{$route_spec}->{requires_login})
       || $config->{routes}->{$route_spec}->{requires_login};
 
-    # check not overwriting reserved routes
-    die "One of the configured routes is a reserved route" if grep { $route_spec =~ m/^$_/ } $reserved_routes->@*;
+    # we're going to at least add this route (the 'key' of the route specs hash)
+    my @route_paths = ($route_spec);
 
-    $self->routes->any(
-      $route_spec => sub ($c) {
-        $self->proxy_service->proxy($c, $route_spec);
-      }
-    );
+    # if we have add'l paths for this routing spec, then add them here too
+    if ($config->{routes}->{$route_spec}->{additional_paths}) {
+      push @route_paths, @{$config->{routes}->{$route_spec}->{additional_paths}}; 
+    }
+
+    for my $r (@route_paths) {
+      # check not overwriting reserved routes
+      die "One of the configured routes is a reserved route" if grep { $r =~ m/^$_/ } $reserved_routes->@*;
+
+      $self->routes->any(
+        $r => sub ($c) {
+          $self->proxy_service->proxy($c, $r);
+        }
+      );
+    }
   }
 
   # __IF__ our default route in the config specifies that it does NOT require
@@ -192,14 +202,25 @@ sub startup ($self) {
       if defined($config->{routes}->{$route_spec}->{requires_login})
       && !$config->{routes}->{$route_spec}->{requires_login};
 
-    # check not overwriting reserved routes
-    die "One of the configured routes is a reserved route" if grep { $route_spec =~ m/^$_/ } $reserved_routes->@*;
 
-    $authorized_routes->any(
-      $route_spec => sub ($c) {
-        $self->proxy_service->proxy($c, $route_spec);
-      }
-    );
+    # we're going to at least add this route (the 'key' of the route specs hash)
+    my @route_paths = ($route_spec);
+
+    # if we have add'l paths for this routing spec, then add them here too
+    if ($config->{routes}->{$route_spec}->{additional_paths}) {
+      push @route_paths, @{$config->{routes}->{$route_spec}->{additional_paths}}; 
+    }
+
+    for my $r (@route_paths) {
+      # check not overwriting reserved routes
+      die "One of the configured routes is a reserved route" if grep { $r =~ m/^$_/ } $reserved_routes->@*;
+
+      $authorized_routes->any(
+        $r => sub ($c) {
+          $self->proxy_service->proxy($c, $r);
+        }
+      );
+    }
   }
 
   # for if our default route is a locked down route requiring an authenticated user

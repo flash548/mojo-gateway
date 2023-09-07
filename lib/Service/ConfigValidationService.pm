@@ -65,7 +65,8 @@ sub validate_config ($self) {
     requires_login => joi->boolean,
     jwt_claims     => joi->object,
     transforms     => joi->array,
-    other_headers  => joi->object
+    other_headers  => joi->object,
+    additional_paths => joi->array,
   );
 
   # validation spec for a local / template spec
