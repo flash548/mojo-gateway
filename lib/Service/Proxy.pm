@@ -5,34 +5,42 @@ use Mojo::JWT;
 has 'config';
 has 'ua';
 
+#
+# Find the route spec information in the config given 
+# the name of the route spec (the matched route spec the mojo router used -- e.g. /anyone/**) 
 sub _find_route_spec ($self, $name) {
+    use Data::Dumper;
+    use Test::More;
   my $r = $self->config->{ routes }->{ $name };
 
   if (!$r) {
+
     # if '$name' was not a main path spec in the config (e.g. a hash key), then
     # take all route specs from the config, and grab out their paths, and any add'l paths
     # then finally flatten all that into an array
-    my $sub_paths = Mojo::Collection::c(keys %{ $self->config->{ routes } })->grep(sub ($spec) {
-      return
-        defined($self->config->{ routes }->{ $spec }->{ additional_paths })
+    my $sub_paths = Mojo::Collection::c(keys %{ $self->config->{ routes } })->map(sub ($spec) {
+      return $self->config->{ routes }->{ $spec }
+        if defined($self->config->{ routes }->{ $spec }->{ additional_paths })
         && @{ $self->config->{ routes }->{ $spec }->{ additional_paths } } > 0;
-    })->map(sub ($spec) {
-      my @paths  = @{ $self->config->{ routes }->{ $spec }->{ additional_paths } };
+    })->compact->map(sub ($spec) {
+      my @paths  = @{ $spec->{ additional_paths } };
       my @retVal = ();
       for my $p (@paths) {
         push @retVal, { $p => $spec };
       }
-      return \@paths;
+      return \@retVal;
     })->flatten;
     
+
     # look through all these flattened route paths, and see
     # if we find the one that matches '$name'
-    my $matched_spec = $sub_paths->grep(sub ($spec) {
+    my $matched_spec = $sub_paths->map(sub ($spec) {
       my @keys = keys %{ $spec };
-      if ($keys[0] eq $name) {
+      
+      if (@keys > 0 && $keys[0] eq $name) {
         return $spec->{ $name };
       }
-    })->to_array;
+    })->compact->to_array;
 
     if (@{ $matched_spec } > 0) {
 
@@ -50,13 +58,14 @@ sub _find_route_spec ($self, $name) {
   }
 }
 
-# takes the request object ($c) named route from the config
+# takes the request object ($c) and the matched route from the config
+# and does what its settings dictate (e.g. proxy to uri or return a template, inline template, etc)
 sub proxy ($self, $c, $name) {
 
   # find the route spec from the config (note: it may be in a nested 'additional_paths', so look there too)
   my $route_spec = $self->_find_route_spec($name);
-
   if (defined($route_spec->{ template_name })) {
+
     # this isn't a request to be proxied, its just a local template render (or inline render)
     if ($route_spec->{ template_name } =~ m/^<%=/) {
       $c->render(inline => $route_spec->{ template_name });
