@@ -172,7 +172,7 @@ Within the admin interface you can:
 
 - ✅ Add user accounts
 - ✅ Delete user accounts
-- ✅ Update user accounts (change, expire passwords, change names, etc)
+- ✅ Update user accounts (change, expire passwords, change names, lock, etc)
 - ✅ View traffic stats / Audit Log
 
 ## App Features
@@ -180,7 +180,7 @@ Within the admin interface you can:
 - ✅ Add/Edit/User accounts
 - ✅ Audit Log
 - ✅ MFA option - integration with Google Authenticator
-- 🔳 Console/Debug logging
+- ✅ Console/Debug logging (via MOJO_LOG_LEVEL in Dockerfile for prod)
 - ✅ Set optional config param ("max_login_attempts") for max attempts of unsuccessful login (e.g. lock account after 3 bad attempts)
 - ✅ Admin lock-out account
 - 🔳 Add forgot-password feature -- vague at this point

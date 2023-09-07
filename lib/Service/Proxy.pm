@@ -6,11 +6,9 @@ has 'config';
 has 'ua';
 
 #
-# Find the route spec information in the config given 
-# the name of the route spec (the matched route spec the mojo router used -- e.g. /anyone/**) 
+# Find the route spec information in the config given
+# the name of the route spec (the matched route spec the mojo router used -- e.g. /anyone/**)
 sub _find_route_spec ($self, $name) {
-    use Data::Dumper;
-    use Test::More;
   my $r = $self->config->{ routes }->{ $name };
 
   if (!$r) {
@@ -30,13 +28,13 @@ sub _find_route_spec ($self, $name) {
       }
       return \@retVal;
     })->flatten;
-    
+
 
     # look through all these flattened route paths, and see
     # if we find the one that matches '$name'
     my $matched_spec = $sub_paths->map(sub ($spec) {
       my @keys = keys %{ $spec };
-      
+
       if (@keys > 0 && $keys[0] eq $name) {
         return $spec->{ $name };
       }
@@ -64,12 +62,15 @@ sub proxy ($self, $c, $name) {
 
   # find the route spec from the config (note: it may be in a nested 'additional_paths', so look there too)
   my $route_spec = $self->_find_route_spec($name);
+
   if (defined($route_spec->{ template_name })) {
 
     # this isn't a request to be proxied, its just a local template render (or inline render)
     if ($route_spec->{ template_name } =~ m/^<%=/) {
+      $c->app->log->info(sprintf("Proxying $name to template " . $route_spec->{ template_name }));
       $c->render(inline => $route_spec->{ template_name });
     } else {
+      $c->app->log->info(sprintf("Proxying $name to inline template response"));
       $c->render(template => $route_spec->{ template_name });
     }
     return;
@@ -84,6 +85,7 @@ sub proxy ($self, $c, $name) {
     my $match    = $route_spec->{ rewrite_path }->{ match };
     my $with     = $route_spec->{ rewrite_path }->{ with };
     my $new_path = ($c->req->url->path =~ s/$match/$with/re);
+    $c->app->log->info(sprintf("Rewriting request to path: " . $name . " to $new_path"));
     $c->req->url->path($new_path);
   }
 
@@ -93,8 +95,10 @@ sub proxy ($self, $c, $name) {
 
   # see if we wanna use JWT for this proxy route
   if ($route_spec->{ enable_jwt }) {
+    $c->app->log->trace("Injecting JWT to proxied request");
     my $claims = {};
     for my $claim (keys %{ $route_spec->{ jwt_claims } }) {
+      $c->app->log->trace("Injecting claim: $claim into JWT");
       $claims->{ $claim } = eval $route_spec->{ jwt_claims }->{ $claim };
     }
     my $jwt = Mojo::JWT->new(claims => $claims, secret => $self->config->{ jwt_secret });
@@ -104,10 +108,12 @@ sub proxy ($self, $c, $name) {
 
   # add any other static-text headers specified in our config json
   for my $header (keys %{ $route_spec->{ other_headers } }) {
+    $c->app->log->trace("Injecting header: $header into request");
     $request->headers->add($header => $route_spec->{ other_headers }->{ $header });
   }
 
   my $tx = $self->ua->start(Mojo::Transaction::HTTP->new(req => $request));
+  $c->app->log->info(sprintf("Proxying $name to host: " . $route_spec->{ uri }));
 
   # proxy actioning inspired from Mojolicious::Plugin::Proxy -> without it would not have figured this proxying out
   # trick is to copy the res over to the $c->tx->res not $c->res directly
@@ -120,6 +126,7 @@ sub proxy ($self, $c, $name) {
       for my $transform (@{ $route_spec->{ transforms } }) {
         my $condition = eval $transform->{ condition };
         if ($condition) {
+          $c->app->log->trace("Doing response transform");
           eval $transform->{ action };
           $res->headers->content_length(length($body));
           $res->body($body);
@@ -128,11 +135,13 @@ sub proxy ($self, $c, $name) {
     }
 
     $res->fix_headers;
+    $c->app->log->info("Received response from " . $request->url->to_string . " / status: " . $res->code);
     $c->tx->res($res);
     $c->rendered;
   } else {
 
     # something went wrong and we didnt get a response from the proxy target
+    $c->app->log->warn("No response from target " . $request->url->to_string);
     $c->render("no_response");
   }
 }
