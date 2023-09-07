@@ -67,10 +67,10 @@ sub proxy ($self, $c, $name) {
 
     # this isn't a request to be proxied, its just a local template render (or inline render)
     if ($route_spec->{ template_name } =~ m/^<%=/) {
-      $c->app->log->info(sprintf("Proxying $name to template " . $route_spec->{ template_name }));
+      $c->app->log->info(sprintf("Proxying $name to inline template response"));
       $c->render(inline => $route_spec->{ template_name });
     } else {
-      $c->app->log->info(sprintf("Proxying $name to inline template response"));
+      $c->app->log->info(sprintf("Proxying $name to template " . $route_spec->{ template_name }));
       $c->render(template => $route_spec->{ template_name });
     }
     return;
