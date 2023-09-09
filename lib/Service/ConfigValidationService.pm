@@ -19,12 +19,10 @@ sub validate_config ($self) {
     admin_user              => joi->email->required,
     admin_pass              => joi->string(1)->required,
     db_type                 => joi->string->enum(["pg", "sqlite"]),
-    db_user                 => joi->string,
-    db_password             => joi->string,
     db_uri                  => joi->string,
     cookie_name             => joi->string,
     strip_headers_to_client => joi->array,
-    jwt_secret              => joi->string->required,
+    jwt_secret              => joi->string->min(1)->required,
     routes                  => joi->object->required,
     password_valid_days     => joi->number->positive->required,
     password_complexity     => joi->object->required,
@@ -33,9 +31,9 @@ sub validate_config ($self) {
     config_override         => joi->boolean    # this is put in by Mojo on config overrides in testing
   );
 
-  if ($self->config->{mfa_secret} || $self->config->{mfa_issuer} || $self->config->{mfa_key_id}) {
-    die "MFA secret/issuer/key_id must ALL be set if any of the others are set" unless 
-      $self->config->{mfa_secret} && $self->config->{mfa_issuer} && $self->config->{mfa_key_id};
+  if ($self->config->{ mfa_secret } || $self->config->{ mfa_issuer } || $self->config->{ mfa_key_id }) {
+    die "MFA secret/issuer/key_id must ALL be set if any of the others are set"
+      unless $self->config->{ mfa_secret } && $self->config->{ mfa_issuer } && $self->config->{ mfa_key_id };
   }
 
   say "Validating config...";
@@ -53,33 +51,32 @@ sub validate_config ($self) {
   );
 
   say "Validating password complexity config...";
-  @errors = $password_complex_config->strict->validate($self->config->{password_complexity});
+  @errors = $password_complex_config->strict->validate($self->config->{ password_complexity });
   if (@errors) {
     die @errors;
   }
 
   # validation spec for an actual proxy to another service spec
   my $route_config_spec = joi->object->props(
-    uri            => joi->string->required,
-    enable_jwt     => joi->boolean,
-    requires_login => joi->boolean,
-    jwt_claims     => joi->object,
-    transforms     => joi->array,
-    other_headers  => joi->object,
+    uri              => joi->string->required,
+    enable_jwt       => joi->boolean,
+    requires_login   => joi->boolean,
+    jwt_claims       => joi->object,
+    transforms       => joi->array,
+    other_headers    => joi->object,
     additional_paths => joi->array,
   );
 
   # validation spec for a local / template spec
-  my $route_local_spec = joi->object->props(
-    template_name => joi->string->required,
-    requires_login => joi->boolean
-  );
+  my $route_local_spec = joi->object->props(template_name => joi->string->required, requires_login => joi->boolean);
 
   say "Validating default route config...";
-  if (defined($self->config->{default_route}->{template_name}) && !defined($self->config->{default_route}->{uri})) {
-    @errors = $route_local_spec->validate($self->config->{default_route});
-  } elsif (!defined($self->config->{default_route}->{template_name}) && defined($self->config->{default_route}->{uri})) {
-    @errors = $route_config_spec->validate($self->config->{default_route});
+  if (defined($self->config->{ default_route }->{ template_name })
+    && !defined($self->config->{ default_route }->{ uri })) {
+    @errors = $route_local_spec->validate($self->config->{ default_route });
+  } elsif (!defined($self->config->{ default_route }->{ template_name })
+    && defined($self->config->{ default_route }->{ uri })) {
+    @errors = $route_config_spec->validate($self->config->{ default_route });
   } else {
     @errors = ('Cannot specify both uri and template fields on the default route spec');
   }
@@ -88,12 +85,14 @@ sub validate_config ($self) {
   }
 
   say "Validating route config...";
-  for my $route (keys($self->config->{routes}->%*)) {
+  for my $route (keys($self->config->{ routes }->%*)) {
     say "On route " . $route;
-    if (defined($self->config->{routes}->{$route}->{template_name}) && !defined($self->config->{routes}->{$route}->{uri})) {
-      @errors = $route_local_spec->validate($self->config->{routes}->{$route});
-    } elsif (!defined($self->config->{routes}->{$route}->{template_name}) && defined($self->config->{routes}->{$route}->{uri})) {
-      @errors = $route_config_spec->validate($self->config->{routes}->{$route});
+    if (defined($self->config->{ routes }->{ $route }->{ template_name })
+      && !defined($self->config->{ routes }->{ $route }->{ uri })) {
+      @errors = $route_local_spec->validate($self->config->{ routes }->{ $route });
+    } elsif (!defined($self->config->{ routes }->{ $route }->{ template_name })
+      && defined($self->config->{ routes }->{ $route }->{ uri })) {
+      @errors = $route_config_spec->validate($self->config->{ routes }->{ $route });
     } else {
       @errors = ('Cannot specify both uri and template fields on a proxy route spec');
     }

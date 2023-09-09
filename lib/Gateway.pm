@@ -30,8 +30,8 @@ sub startup ($self) {
   # validate our config before doing anything
   Service::ConfigValidationService->new(config => $self->config)->validate_config();
 
-  $self->secrets([$config->{secret}]);
-  $self->sessions->cookie_name($config->{cookie_name} // 'mojolicious');
+  $self->secrets([$config->{ secret }]);
+  $self->sessions->cookie_name($config->{ cookie_name } // 'mojolicious');
   $self->hook(
     before_dispatch => sub ($c) {
 
@@ -44,8 +44,8 @@ sub startup ($self) {
     after_dispatch => sub ($c) {
 
       # remove any headers we never want going back to the client
-      if ($config->{strip_headers_to_client}) {
-        $c->res->headers->remove(lc $_) for (@{$config->{strip_headers_to_client}});
+      if ($config->{ strip_headers_to_client }) {
+        $c->res->headers->remove(lc $_) for (@{ $config->{ strip_headers_to_client } });
       }
 
       # log the http trace
@@ -58,18 +58,18 @@ sub startup ($self) {
 
       # config var 'test' will be defined if we're running unit tests,
       # otherwise see what type of DB we defined in the ENV VARs
-      if (!$ENV{test} && defined($config->{db_type}) && $config->{db_type} eq 'sqlite') {
+      if (!$ENV{ test } && defined($config->{ db_type }) && $config->{ db_type } eq 'sqlite') {
         state $path      = $self->app->home->child('data.db');
         state $db_handle = Mojo::SQLite->new('sqlite:' . $path);
         return $db_handle;
-      } elsif (!defined($config->{test}) && $config->{db_type} eq 'pg') {
-        state $db_handle = Mojo::Pg->new($config->{db_uri});
+      } elsif (!defined($config->{ test }) && $config->{ db_type } eq 'pg') {
+        state $db_handle = Mojo::Pg->new($config->{ db_uri });
 
         # turn off pg-server-side prepares since in prod we're running this
         # thing in prefork mode.  If not pre-fork, shouldn't matter as to this
         # setting's value, otherwise we get multiple Mojo::Gateway instances telling Postgres to
         # prepare identical, already stored statements causing exceptions...
-        $db_handle->db->dbh->{pg_server_prepare} = 0;
+        $db_handle->db->dbh->{ pg_server_prepare } = 0;
         return $db_handle;
       } else {
 
@@ -81,9 +81,9 @@ sub startup ($self) {
     }
   );
 
-  if (!$ENV{test} && defined($config->{db_type}) && $config->{db_type} eq 'sqlite') {
+  if (!$ENV{ test } && defined($config->{ db_type }) && $config->{ db_type } eq 'sqlite') {
     $self->db_conn->auto_migrate(1)->migrations->from_file('./migrations/data.sql');
-  } elsif (!defined($config->{test}) && $config->{db_type} eq 'pg') {
+  } elsif (!defined($config->{ test }) && $config->{ db_type } eq 'pg') {
     $self->db_conn->auto_migrate(1)->migrations->from_file('./migrations/data_pg.sql');
   } else {
     $self->db_conn->auto_migrate(1)->migrations->from_file('./migrations/data.sql');
@@ -91,7 +91,8 @@ sub startup ($self) {
 
   $self->user_service(Service::UserService->new(db => $self->db_conn->db, config => $config));
   $self->http_log_service(Service::HttpLogService->new(db => $self->db_conn->db, config => $config));
-  $self->proxy_service(Service::Proxy->new(config => $config, ua => Mojo::UserAgent->new));
+  $self->proxy_service(
+    Service::Proxy->new(config => $config, ua => Mojo::UserAgent->new, user_service => $self->user_service));
   $self->admin_controller(
     Controller::AdminController->new(user_service => $self->user_service, log_service => $self->http_log_service));
   $self->user_controller(Controller::UserController->new(user_service => $self->user_service));
@@ -108,20 +109,21 @@ sub startup ($self) {
   $self->routes->post('/auth/login' => sub ($c) { $self->user_controller->login_post($c) });
 
   # add any config-file-defined proxy routes that do not require authentication
-  for my $route_spec (keys %{$config->{routes}}) {
+  for my $route_spec (keys %{ $config->{ routes } }) {
     next
-      if !defined($config->{routes}->{$route_spec}->{requires_login})
-      || $config->{routes}->{$route_spec}->{requires_login};
+      if !defined($config->{ routes }->{ $route_spec }->{ requires_login })
+      || $config->{ routes }->{ $route_spec }->{ requires_login };
 
     # we're going to at least add this route (the 'key' of the route specs hash)
     my @route_paths = ($route_spec);
 
     # if we have add'l paths for this routing spec, then add them here too
-    if ($config->{routes}->{$route_spec}->{additional_paths}) {
-      push @route_paths, @{$config->{routes}->{$route_spec}->{additional_paths}}; 
+    if ($config->{ routes }->{ $route_spec }->{ additional_paths }) {
+      push @route_paths, @{ $config->{ routes }->{ $route_spec }->{ additional_paths } };
     }
 
     for my $r (@route_paths) {
+
       # check not overwriting reserved routes
       die "One of the configured routes is a reserved route" if grep { $r =~ m/^$_/ } $reserved_routes->@*;
 
@@ -136,7 +138,7 @@ sub startup ($self) {
   # __IF__ our default route in the config specifies that it does NOT require
   # login then add that here and now, otherwise it'll be later on in the auth'd routes
   # below
-  if (defined($config->{default_route}->{requires_login}) && !$config->{default_route}->{requires_login}) {
+  if (defined($config->{ default_route }->{ requires_login }) && !$config->{ default_route }->{ requires_login }) {
     $self->routes->add_condition(
       check_no_admin => sub ($route, $c, $captures, $opts) {
         return undef if $c->req->url->path =~ m!^/admin!i; # don't allow admin to be aliased over by the catch-all route
@@ -177,11 +179,11 @@ sub startup ($self) {
   $admin_routes->delete('/users' => sub ($c) { $self->admin_controller->users_delete($c) });
 
   # Logs fetch routes
-  if ($self->config->{enable_logging}) {
+  if ($self->config->{ enable_logging }) {
     $admin_routes->get('/http_logs' => sub ($c) { $self->admin_controller->get_http_logs($c) });
   } else {
     $admin_routes->get('/http_logs' =>
-        sub ($c) { $c->render(json => {message => "Feature Disabled"}, status => Constants::HTTP_FORBIDDEN); });
+        sub ($c) { $c->render(json => { message => "Feature Disabled" }, status => Constants::HTTP_FORBIDDEN); });
   }
 
   # these routes are just for authenticated (logged in users)
@@ -197,21 +199,22 @@ sub startup ($self) {
   $authorized_routes->post('/auth/mfa/entry' => sub ($c) { $self->user_controller->mfa_entry_form_post($c) });
 
   # add our proxy routes requiring authentication
-  for my $route_spec (keys %{$config->{routes}}) {
+  for my $route_spec (keys %{ $config->{ routes } }) {
     next
-      if defined($config->{routes}->{$route_spec}->{requires_login})
-      && !$config->{routes}->{$route_spec}->{requires_login};
+      if defined($config->{ routes }->{ $route_spec }->{ requires_login })
+      && !$config->{ routes }->{ $route_spec }->{ requires_login };
 
 
     # we're going to at least add this route (the 'key' of the route specs hash)
     my @route_paths = ($route_spec);
 
     # if we have add'l paths for this routing spec, then add them here too
-    if ($config->{routes}->{$route_spec}->{additional_paths}) {
-      push @route_paths, @{$config->{routes}->{$route_spec}->{additional_paths}}; 
+    if ($config->{ routes }->{ $route_spec }->{ additional_paths }) {
+      push @route_paths, @{ $config->{ routes }->{ $route_spec }->{ additional_paths } };
     }
 
     for my $r (@route_paths) {
+
       # check not overwriting reserved routes
       die "One of the configured routes is a reserved route" if grep { $r =~ m/^$_/ } $reserved_routes->@*;
 
@@ -224,7 +227,7 @@ sub startup ($self) {
   }
 
   # for if our default route is a locked down route requiring an authenticated user
-  if (!defined($config->{default_route}->{requires_login}) || $config->{default_route}->{requires_login}) {
+  if (!defined($config->{ default_route }->{ requires_login }) || $config->{ default_route }->{ requires_login }) {
 
     # catch-all/default routes - routes to the default_routes specified in the config json
     $authorized_routes->any(
