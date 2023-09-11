@@ -86,6 +86,7 @@ subtest 'Test Ignore Paths for Logging' => sub {
     ->json_has('/results', 'Allowed Endpoint');
 
   $t->get_ok('/everyone');
+  $t->get_ok('/everyone/everywhere');
 
   # custom function for inspecting http logs response
   my $json_coll_has = sub ($t, $value, $desc = '') {

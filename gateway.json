@@ -21,7 +21,7 @@
       "enable_jwt": true,
       "requires_login": true,
       "jwt_claims": {
-        "email": "$c->session->{user}->{email}"
+        "email": ":email"
       }
     },
     "/api/**" : {
@@ -29,7 +29,7 @@
       "enable_jwt": true,
       "requires_login": true,
       "jwt_claims": {
-        "email": "$c->session->{user}->{email}"
+        "email": ":email"
       }
     },
     "/other-api" : {
@@ -37,8 +37,8 @@
       "enable_jwt": true,
       "requires_login": true,
       "jwt_claims": {
-        "email": "$c->session->{user}->{email}",
-        "usercertificate": "\"Tron.Developer.\" . $c->session->{user}->{user_id}"
+        "email": ":email",
+        "usercertificate": ["Tron.Developer.", ":user_id" ]
       },
       "other_headers": {
         "x-forwarded-client-cert": "some other header data"
@@ -58,11 +58,10 @@
     "enable_jwt": true,
     "requires_login": true,
     "jwt_claims": {
-      "email": "$c->session->{user}->{email}"
+      "email": ":email"
     },
     "transforms": [{
-      "condition": "$c->req->url =~ m/environment\\.js/",
-      "action": "$body =~ s!http://localhost:8080/api/v1!/api/v1!"
+      "action": { "search": "http://localhost:8080/api/v1", "replace": "/api/v1" }
     }]
   }
 }

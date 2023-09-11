@@ -12,7 +12,7 @@
     <div class="vh-100 w-100 flex flex-column justify-center items-center">
       <div class="pv4 ph4 br2" style="background-color: var(--surfaceElements)">
         <div class="mb4">
-          <h2><%= app->config->{login_page_title} %></h2>
+          <h2><%= app->config->{login_page_title} // 'Login' %></h2>
         </div>
         <div>
           <% if (stash 'acct_locked') { %>
