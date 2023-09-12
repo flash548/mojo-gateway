@@ -4,6 +4,10 @@
 
 This project is hosted on Dockerhub as a Docker Image.  [flash548/mojo-gateway](https://hub.docker.com/r/flash548/mojo-gateway)
 
+### Wiki
+
+Documentation on configuration file on project's [Wiki Page](https://github.com/flash548/mojo-gateway/wiki)
+
 ### About
 
 `
@@ -20,7 +24,7 @@ The service also uses [Mojo::JWT](https://metacpan.org/pod/Mojo::JWT) to create 
 
 The need came from SSO environments, but not having the cloud resources to host such large services and layers (e.g. Keycloak/Envoy/Istio...).  There seemed to be a need for a lightweight solution - so stitching together various Mojolicious libraries off CPAN produced this functional (albeit basic) service.
 
-Below shows an example of usage for an environment that has a NGINX container (perhaps serving a React application or something) and a backend service running some stack connected to a database that needs to perform Authorization based on username/email.  
+Below shows an example of usage for an environment that has a NGINX container (perhaps serving a React application or something) and a backend service running some stack connected to a database that needs to perform Authorization based on username/email or other JWT claim.  
 
 Example configuration file that uses a Postgres database:
 
@@ -47,7 +51,7 @@ Example configuration file that uses a Postgres database:
       "enable_jwt": true,
       "requires_login": true,
       "jwt_claims": {
-        "email": "$c->session->{user}->{email}"
+        "email": ":email"
       }
     },
     "/api/**" : {
@@ -55,7 +59,7 @@ Example configuration file that uses a Postgres database:
       "enable_jwt": true,
       "requires_login": true,
       "jwt_claims": {
-        "email": "$c->session->{user}->{email}"
+        "email": ":email"
       }
     },
     "/other-api" : {
@@ -63,8 +67,8 @@ Example configuration file that uses a Postgres database:
       "enable_jwt": true,
       "requires_login": true,
       "jwt_claims": {
-        "email": "$c->session->{user}->{email}",
-        "usercertificate": "\"Tron.Developer.\" . $c->stash('record')->{user_id}"
+        "email": ":email",
+        "usercertificate": [ "Some.Developer.", ":user_id" ]
       },
       "other_headers": {
         "x-forwarded-client-cert": "some other header data"
@@ -84,11 +88,11 @@ Example configuration file that uses a Postgres database:
     "enable_jwt": true,
     "requires_login": true,
     "jwt_claims": {
-      "email": "$c->session->{user}->{email}"
+      "email": ":email"
     },
     "transforms": [{
-      "condition": "$c->req->url =~ m/environment\\.js/",
-      "action": "$body =~ s!http://localhost:8080/api/v1!/api/v1!"
+      "path": "environment.js",
+      "action": { "search": "http://localhost:8080/api/v1", "replace": "/api/v1" }
     }]
   }
 }
