@@ -43,7 +43,7 @@ subtest 'Check vanilla login goes to landing page specified - specified inline t
     routes       => {
       '/'             => {uri => "http://localhost:8080/frontend", enable_jwt => 1, requires_login => 1},
       '/api'          => {uri => "http://localhost:8080/api",      enable_jwt => 1, requires_login => 1},
-      '/landing_page' => {template_name => '<%= 1 + 1 %>'}
+      '/landing_page' => {template_name => 'inline: <%= 1 + 1 %>'}
     },
     default_route       => {uri => 'https://localhost:8080/frontend', requires_login => 1},
     password_valid_days => 60,
@@ -95,7 +95,7 @@ subtest 'Check landing page can be accessed if requires_login false' => sub {
     routes       => {
       '/'             => {uri => "http://localhost:8080/frontend", enable_jwt => 1, requires_login => 1},
       '/api'          => {uri => "http://localhost:8080/api",      enable_jwt => 1, requires_login => 1},
-      '/landing_page' => {template_name => '<%= qw(landing_page!!!) %>', requires_login => 0}
+      '/landing_page' => {template_name => 'inline:landing_page!!!', requires_login => 0}
     },
     default_route       => {uri => 'https://localhost:8080/frontend', requires_login => 1},
     password_valid_days => 60,
@@ -121,7 +121,7 @@ subtest 'Check landing page can be cannot be accessed if requires_login is true'
     routes       => {
       '/'             => {uri => "http://localhost:8080/frontend", enable_jwt => 1, requires_login => 1},
       '/api'          => {uri => "http://localhost:8080/api",      enable_jwt => 1, requires_login => 1},
-      '/landing_page' => {template_name => '<%= qw(landing_page!!!) %>', requires_login => 1}
+      '/landing_page' => {template_name => 'inline: landing_page!!!', requires_login => 1}
     },
     default_route       => {uri => 'https://localhost:8080/frontend', requires_login => 1},
     password_valid_days => 60,
@@ -151,7 +151,7 @@ subtest 'Check landing page is used upon subsequent login after explicit logout'
     routes       => {
       '/'             => {uri => "http://localhost:8080/frontend", enable_jwt => 1, requires_login => 1},
       '/api'          => {uri => "http://localhost:8080/api",      enable_jwt => 1, requires_login => 1},
-      '/landing_page' => {template_name => '<%= qw(landing_page!!!) %>', requires_login => 1}
+      '/landing_page' => {template_name => 'inline: landing_page!!!', requires_login => 1}
     },
     default_route       => {uri => 'https://localhost:8080/frontend', requires_login => 1},
     password_valid_days => 60,

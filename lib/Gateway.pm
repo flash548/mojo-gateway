@@ -126,36 +126,12 @@ sub startup ($self) {
 
       # check not overwriting reserved routes
       die "One of the configured routes is a reserved route" if grep { $r =~ m/^$_/ } $reserved_routes->@*;
-
       $self->routes->any(
         $r => sub ($c) {
           $self->proxy_service->proxy($c, $r);
         }
       );
     }
-  }
-
-  # __IF__ our default route in the config specifies that it does NOT require
-  # login then add that here and now, otherwise it'll be later on in the auth'd routes
-  # below
-  if (defined($config->{ default_route }->{ requires_login }) && !$config->{ default_route }->{ requires_login }) {
-    $self->routes->add_condition(
-      check_no_admin => sub ($route, $c, $captures, $opts) {
-        return undef if $c->req->url->path =~ m!^/admin!i; # don't allow admin to be aliased over by the catch-all route
-
-        return 1;
-      }
-    );
-    $self->routes->any('/**')->requires(check_no_admin => {})->to(
-      cb => sub ($c) {
-        $self->proxy_service->proxy($c, 'default_route');
-      }
-    );
-    $self->routes->any('*')->requires(check_no_admin => {})->to(
-      cb => sub ($c) {
-        $self->proxy_service->proxy($c, 'default_route');
-      }
-    );
   }
 
   # all routes from here-on require authenticated user
@@ -230,6 +206,15 @@ sub startup ($self) {
   if (!defined($config->{ default_route }->{ requires_login }) || $config->{ default_route }->{ requires_login }) {
 
     # catch-all/default routes - routes to the default_routes specified in the config json
+    my $temp_ctrlr = Mojolicious::Controller->new;
+    my $match = Mojolicious::Routes::Match->new(root => $self->routes);
+    if ($match->find($temp_ctrlr => {method => 'GET', path => '/'}) == 0) {
+      say "No handler for '/' specified => going to use the secured/locked-down default_route";
+      $authorized_routes->any('/' => sub ($c) {
+          $self->proxy_service->proxy($c, 'default_route');
+        }
+      );
+    }
     $authorized_routes->any(
       '/**' => sub ($c) {
         $self->proxy_service->proxy($c, 'default_route');
@@ -237,6 +222,38 @@ sub startup ($self) {
     );
     $authorized_routes->any(
       '*' => sub ($c) {
+        $self->proxy_service->proxy($c, 'default_route');
+      }
+    );
+  }
+  # For if our default route in the config specifies that it does NOT require
+  # login then add that here and now, otherwise it'll be later on in the auth'd routes
+  # below
+  elsif (defined($config->{ default_route }->{ requires_login }) && !$config->{ default_route }->{ requires_login }) {
+    $self->routes->add_condition(
+      check_no_admin => sub ($route, $c, $captures, $opts) {
+        return undef if $c->req->url->path =~ m!^/admin!i; # don't allow admin to be aliased over by the catch-all route
+        return 1;
+      }
+    );
+
+    my $temp_ctrlr = Mojolicious::Controller->new;
+    my $match = Mojolicious::Routes::Match->new(root => $self->routes);
+    if ($match->find($temp_ctrlr => {method => 'GET', path => '/'}) == 0) {
+      say "No handler for '/' specified => going to use the default_route";
+      $self->routes->any('/')->requires(check_no_admin => 1)->to(
+        cb => sub ($c) {
+          $self->proxy_service->proxy($c, 'default_route');
+        }
+      );
+    }
+    $self->routes->any('/**')->requires(check_no_admin => 1)->to(
+      cb => sub ($c) {
+        $self->proxy_service->proxy($c, 'default_route');
+      }
+    );
+    $self->routes->any('*')->requires(check_no_admin => 1)->to(
+      cb => sub ($c) {
         $self->proxy_service->proxy($c, 'default_route');
       }
     );

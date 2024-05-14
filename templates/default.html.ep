@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="/css/astro.min.css" />
+    <link rel="stylesheet" href="/css/tachyons.min.css" />
+  </head>
+
+  <body class="dark-theme">
+    <div class="flex items-center justify-center mb4">
+      <h2>Landing Page Test</h2>
+    </div>
+  </body>
+</html>
