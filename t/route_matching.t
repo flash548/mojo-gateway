@@ -16,7 +16,7 @@ subtest 'Check can find nested, additional routes' => sub {
     jwt_secret => 'secret',
     routes     => {
       '/'         => { uri              => "http://localhost:8080/frontend", enable_jwt => 1, requires_login => 1 },
-      '/everyone' => { additional_paths => ['/every-one', '/anybody/**' ], requires_login => 0, template_name => "<%= Hello World %>" },
+      '/everyone' => { additional_paths => ['/every-one', '/anybody/**' ], requires_login => 0, template_name => "<%= 'Hello World' %>" },
       '/anyone'   => { requires_login   => 0,              uri            => "http://localhost:8080/anyone" },
       '/api'      => { uri              => "http://localhost:8080/api", enable_jwt => 1, requires_login => 1 }
     },
@@ -26,9 +26,9 @@ subtest 'Check can find nested, additional routes' => sub {
   };
   my $proxy = Service::Proxy->new(config => $options);
   ok $proxy->_find_route_spec('/')->{uri} eq "http://localhost:8080/frontend";
-  ok $proxy->_find_route_spec('/everyone')->{template_name} eq "<%= Hello World %>";
-  ok $proxy->_find_route_spec('/every-one')->{template_name} eq "<%= Hello World %>";
-  ok $proxy->_find_route_spec('/anybody/**')->{template_name} eq "<%= Hello World %>";
+  ok $proxy->_find_route_spec('/everyone')->{template_name} eq "<%= 'Hello World' %>";
+  ok $proxy->_find_route_spec('/every-one')->{template_name} eq "<%= 'Hello World' %>";
+  ok $proxy->_find_route_spec('/anybody/**')->{template_name} eq "<%= 'Hello World' %>";
   ok !defined($proxy->_find_route_spec('/anyone')->{template_name});
   ok $proxy->_find_route_spec('/anyone')->{uri} eq "http://localhost:8080/anyone";
 
@@ -46,7 +46,7 @@ subtest 'Check matches compound spec' => sub {
     jwt_secret => 'secret',
     routes     => {
       '/'         => { uri              => "http://localhost:8080/frontend", enable_jwt => 1, requires_login => 1 },
-      '/everyone' => { additional_paths => ['/every-one', '/anybody/**'], requires_login => 0, template_name => "<%= Hello World %>" },
+      '/everyone' => { additional_paths => ['/every-one', '/anybody/**'], requires_login => 0, template_name => "inline: <%= 'Hello World' %>" },
       '/anyone'   => { requires_login   => 0,              uri            => "http://localhost:8080/anyone" },
       '/api'      => { uri              => "http://localhost:8080/api", enable_jwt => 1, requires_login => 1 }
     },
