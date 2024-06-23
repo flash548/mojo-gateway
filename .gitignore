@@ -12,3 +12,4 @@ docker-compose.yml
 *.json
 .DS_Store
 !gateway.json
+local/
