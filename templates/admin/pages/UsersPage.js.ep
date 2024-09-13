@@ -20,14 +20,14 @@ export function UsersPage() {
   function deleteUser() {
     let user = state.selectedUser;
 
-    fetch(`/admin/users?email=${user.email.toLowerCase()}`, {
+    fetch(`/admin/users?id=${user.id}`, {
       method: "DELETE",
     })
       .then(() => {
         setState({
           ...state,
           users: state.users.filter(
-            (u) => u.email.toLowerCase() !== user.email.toLowerCase()
+            (u) => u.id !== user.id
           ),
           confirmDelete: false,
         });
@@ -65,7 +65,7 @@ export function UsersPage() {
           setState({ ...state, users: [...state.users, user], show: false })}
         onEditUser=${(user) => {
           const index = state.users.findIndex(
-            (elem) => elem.email === user.email
+            (elem) => elem.id === user.id
           );
           if (index !== undefined) {
             const updatedState = [...state.users];

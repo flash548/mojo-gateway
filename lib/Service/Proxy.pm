@@ -84,7 +84,7 @@ sub resolve_jwt_claim ($self, $c, $claim_spec) {
         # (since users can't change their email [yet])
         for my $user_field ($self->user_service->user_obj_allowed_fields->@*) {
           if (($1 eq 'email' || $1 eq $user_field) && $c->session->{ user }->{ email }) {
-            my $user_record = $self->user_service->_get_user($c->session->{ user }->{ email });
+            my $user_record = $self->user_service->_get_user_by_username($c->session->{ user }->{ email });
             if ($user_record) {
               push @resolved_claims, $user_record->{ $1 };
               $found_user_field_match = 1;

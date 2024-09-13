@@ -1,6 +1,7 @@
 -- 1 up
 CREATE TABLE users (
-  email VARCHAR UNIQUE PRIMARY KEY,
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email VARCHAR UNIQUE,
   dod_id INTEGER,
   is_admin BOOLEAN DEFAULT FALSE,
   password VARCHAR
@@ -22,7 +23,7 @@ ADD COLUMN last_name VARCHAR(255);
 
 -- generify to a more agnostic term
 -- this is not a UNIQUE field... only thing unique still
--- is 'email' since its the primary key
+-- is 'email'
 ALTER TABLE users
   RENAME COLUMN dod_id TO user_id;
 

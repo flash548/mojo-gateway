@@ -67,16 +67,16 @@ sub update_user_put ($self, $c) {
 # Reachable by: 'ADMIN'
 #
 # Query Params-
-# email (optional, if you want to just fetch one user vs all)
+# id (optional, if you want to just fetch one user vs all)
 #
 # Description-
-# Get all users or just one (if query param 'email' is present)
+# Get all users or just one (if query param 'id' is present)
 #
 # Content-Type: 'application/json'
 sub users_get ($self, $c) {
 
-  # if we provide a single email via query param...
-  if ($c->req->param('email')) {
+  # if we provide a single id via query param...
+  if ($c->req->param('id')) {
 
     my $user = $self->user_service->get_single_user($c);
     if ($user) {
