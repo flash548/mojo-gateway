@@ -1,6 +1,13 @@
 FROM perl
 WORKDIR /opt/mojo-gateway
-COPY . .
+COPY lib/ ./lib
+COPY script/ ./script
+COPY public/ ./public
+COPY gateway.json .
+COPY templates/ ./templates
+COPY migrations/ ./migrations
+
+
 RUN cpanm install Mojolicious
 RUN cpanm install Mojo::SQLite
 RUN cpanm install Mojo::Pg
