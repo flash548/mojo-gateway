@@ -13,3 +13,4 @@ local/
 *.json
 .DS_Store
 !gateway.json
+local/
