@@ -2,6 +2,7 @@ use Test::Mojo;
 use Test::More;
 use Gateway;
 use Constants;
+use Mojo::JSON qw/to_json/;
 
 # our mock Mojo::UserAgent that we inject into the app after bootstrap
 package MockAgent;
@@ -43,6 +44,9 @@ my $config = {
       jwt_claims => {
         email             => ':email',
         user_id           => ['My',  ':email',    'here'],
+        my_id             => ':user_id/i',
+        my_boolified_id   => ':user_id/b',
+        flattened_id_str  => ['My ',  ':email/b',    ' id'],
         other_claim       => ['My ', 'password ', 'is ', ':password'],
         another_claim     => ['My ', 'password ', 'is ', undef],
         yet_another_claim => undef,
@@ -103,6 +107,27 @@ subtest 'Test JWT injected if config says to' => sub {
       do { my $val = $t->tx->res->headers->authorization; $val =~ s/Bearer\s//g; $val; }
     );
     return is($jwt->{ user_id }, 'Myadmin@test.comhere');
+    })
+    # test my_id claim is integer type (not string)
+    ->tap(sub ($t) {
+    my $jwt = Mojo::JWT->new(secret => 'secret')->decode(
+      do { my $val = $t->tx->res->headers->authorization; $val =~ s/Bearer\s//g; $val; }
+    );
+    return is($jwt->{ my_id }, 123456789) && ok(!($jwt->{ my_id } & ~$jwt->{ my_id }));
+    })
+    # test my_boolified_id claim is boolean type (not string)
+    ->tap(sub ($t) {
+    my $jwt = Mojo::JWT->new(secret => 'secret')->decode(
+      do { my $val = $t->tx->res->headers->authorization; $val =~ s/Bearer\s//g; $val; }
+    );
+    return ok(to_json($jwt) =~ m/"my_boolified_id":true/);
+    })
+    # test flattened_id_str claim is string type, unaffected by any coercions (in this case boolean doesnt affect it)
+    ->tap(sub ($t) {
+    my $jwt = Mojo::JWT->new(secret => 'secret')->decode(
+      do { my $val = $t->tx->res->headers->authorization; $val =~ s/Bearer\s//g; $val; }
+    );
+    return ok(to_json($jwt) =~ m/"flattened_id_str":"My admin\@test.com id"/);
     });
 
   # should be no JWT on the default route as spec'd in the config json

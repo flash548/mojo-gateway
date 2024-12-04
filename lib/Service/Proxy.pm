@@ -2,6 +2,7 @@ package Service::Proxy;
 use Mojo::Base -base, -signatures;
 use Mojo::UserAgent;
 use Mojo::JWT;
+use Scalar::Util qw/looks_like_number/;
 
 has 'config';
 has 'user_service';
@@ -63,6 +64,10 @@ sub _find_route_spec ($self, $name) {
 # or if its just a static string.  Something out of the user record would begin with ':'
 sub resolve_jwt_claim ($self, $c, $claim_spec) {
   my @resolved_claims = ();
+  my $integer_claim = 0;
+  my $boolean_claim = Mojo::JSON->false;
+  my $claim_mode = 'string';
+
   if (!defined($claim_spec)) { $claim_spec = ''; }
   if ($self->user_service) {
     my @claim_specs = ();
@@ -76,8 +81,9 @@ sub resolve_jwt_claim ($self, $c, $claim_spec) {
 
     for my $spec (@claim_specs) {
       my $found_user_field_match = 0;
-      use Test::More;
-      if ($spec =~ m/^:(.*)/) {
+
+      # match claim spec of format ':' + user model field name + (optional - /[i or b] for integer or boolean coercion)
+      if ($spec =~ m/^:([\w\d_]+){1,}(\/([ib]+){1,})?/) {
 
         # see if the requested field is "safe/allowed"... note we add "email" manually
         # since that list of allowed fields from user service does not have that
@@ -86,7 +92,17 @@ sub resolve_jwt_claim ($self, $c, $claim_spec) {
           if (($1 eq 'email' || $1 eq $user_field) && $c->session->{ user }->{ email }) {
             my $user_record = $self->user_service->_get_user($c->session->{ user }->{ email });
             if ($user_record) {
-              push @resolved_claims, $user_record->{ $1 };
+              if ($3 && $3 eq 'i') {
+                # we want integer coercion, if it looks like number do conversion, otherwise undef
+                $integer_claim = looks_like_number($user_record->{ $1 }) ? int($user_record->{ $1 }) : undef;
+                $claim_mode = 'integer';
+              } elsif ($3 && $3 eq 'b') {
+                # we want boolean coercion, use Mojo::JSON to get true JSON 'true/false' value
+                $boolean_claim = $user_record->{ $1 } ? Mojo::JSON->true : Mojo::JSON->false;
+                $claim_mode = 'boolean';
+              }
+              
+              push @resolved_claims, $user_record->{ $1 };              
               $found_user_field_match = 1;
               last;
             }
@@ -94,7 +110,7 @@ sub resolve_jwt_claim ($self, $c, $claim_spec) {
         }
       }
 
-      # if its wasn't a valid user field then just use the raw value
+      # if its wasn't a valid user field then just use the raw value (as string)
       if (!$found_user_field_match) {
         push @resolved_claims, $spec;
       }
@@ -102,7 +118,19 @@ sub resolve_jwt_claim ($self, $c, $claim_spec) {
   }
 
   # finally return the concat of our results
-  return join("", @resolved_claims);
+  #
+  # as a priority - if claim spec was an ARRAY, then flatten spec as a string as final value
+  if (ref($claim_spec) eq 'ARRAY') {
+    return join("", @resolved_claims);
+  } elsif ($claim_mode eq 'integer') {
+    return $integer_claim;
+  } elsif ($claim_mode eq 'boolean') {
+    return $boolean_claim;
+  } else {
+    # all other condition flatten possibly just a one-element array and 
+    # final value will just be a scalar string
+    return join("", @resolved_claims);
+  }
 }
 
 # takes the request object ($c) and the matched route from the config
