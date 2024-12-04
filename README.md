@@ -40,7 +40,7 @@ Example configuration file that uses a Postgres database:
   "secret": "<%= $ENV{SECRET} // 'change_this' %>",
   "admin_user": "<%= $ENV{ADMIN_USER} // 'admin@admin.com' %>",
   "admin_pass": "<%= $ENV{ADMIN_PASS} // 'password' %>",
-  "db_type": "<%= $ENV{DB_TYPE} // 'sqlite' %>",
+  "db_type": "<%= $ENV{DB_TYPE} // 'pg' %>",
   "db_uri": "<%= $ENV{DB_URI} // 'postgresql://somedude:password@localhost:5432/database' %>",
   "cookie_name": "<%= $ENV{COOKIE_NAME} // 'mojolicious' %>",
   "strip_headers_to_client": [ "authorization", "server", "x-powered-by"  ],
@@ -59,7 +59,8 @@ Example configuration file that uses a Postgres database:
       "enable_jwt": true,
       "requires_login": true,
       "jwt_claims": {
-        "email": ":email"
+        "email": ":email",4
+        "user_id": ":user_id/i"
       }
     },
     "/other-api" : {
@@ -191,9 +192,18 @@ Within the admin interface you can:
 - 🔳 Allow some type of configurable, self-registration - not sure what that looks like yet
 - 🔳 Integration with AWS SES or the like - for email notifications
 
+## Dependency Management
+
+This project uses `Carton` for dependency management.  Therefore your Perl distribution needs to have it installed.
+
+Need to install it?  Suggest using `cpanm` to install via `sudo cpanm install Carton`.  If you need `cpanm` then install via 
+`sudo curl -L https://cpanmin.us | sudo perl - App::cpanminus`.
+
+Once `Carton` is installed, then you can install dependencies via `carton install` at the root of the project directory, and then you can do `carton exec perl script/mojo-gateway daemon` etc to start the app or `carton exec morbo script/mojo-gateway`...
+
 ## Tests
 
-Run the test suite from the root of the project with: `prove -lr t/`
+Run the test suite from the root of the project with: `carton exec prove -lr t/`
 
 Make sure you dont have a server running locally that might interfere with port 8080 etc - as some of the tests actually standup a running instance of the service.
 
