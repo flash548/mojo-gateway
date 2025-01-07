@@ -21,7 +21,8 @@ has 'log_service';
 #
 # Content-Type: 'text/html'
 sub admin_page_get ($self, $c) {
-  $c->render('admin', email => $c->session->{user}->{email} // 'Unknown');
+  my $record = $self->user_service->_get_user($c->session->{user}->{id});
+  $c->render('admin', email => $record->{email} // 'Unknown');
 }
 
 # POST /admin/users
@@ -67,16 +68,16 @@ sub update_user_put ($self, $c) {
 # Reachable by: 'ADMIN'
 #
 # Query Params-
-# email (optional, if you want to just fetch one user vs all)
+# id (optional, if you want to just fetch one user vs all)
 #
 # Description-
-# Get all users or just one (if query param 'email' is present)
+# Get all users or just one (if query param 'id' is present)
 #
 # Content-Type: 'application/json'
 sub users_get ($self, $c) {
 
-  # if we provide a single email via query param...
-  if ($c->req->param('email')) {
+  # if we provide a single ID via query param...
+  if ($c->req->param('id')) {
 
     my $user = $self->user_service->get_single_user($c);
     if ($user) {
@@ -96,14 +97,14 @@ sub users_get ($self, $c) {
 # Reachable by: 'ADMIN'
 #
 # Query Params-
-# email - (required, the email of the user to delete)
+# id - (required, the id of the user to delete)
 #
 # Description-
-# deletes a user (with query param 'email')
+# deletes a user (with query param 'id')
 #
 # Content-Type: 'application/json'
 sub users_delete ($self, $c) {
-  if ($c->req->param('email')) {
+  if ($c->req->param('id')) {
     my $user = $self->user_service->delete_single_user($c);
     if ($user) {
       return $c->render(json => {message => 'User Deleted'}, status => Constants::HTTP_OK);
@@ -113,7 +114,7 @@ sub users_delete ($self, $c) {
   } else {
 
     # bad request
-    $c->render(json => {message => 'Email query param is required'}, status => Constants::HTTP_BAD_REQUEST);
+    $c->render(json => {message => 'ID query param is required'}, status => Constants::HTTP_BAD_REQUEST);
   }
 }
 
@@ -164,6 +165,7 @@ sub get_http_logs ($self, $c) {
   my $page_size = $c->req->param('pageSize') // 25;
 
   my $status_code        = $c->req->param('statusCode');
+  my $user_id            = $c->req->param('user_id');
   my $user_email         = $c->req->param('email');
   my $path               = $c->req->param('path');
   my $request_method     = $c->req->param('method');
@@ -192,7 +194,7 @@ sub get_http_logs ($self, $c) {
     my $results = $self->log_service->get_logs(
       $c,            $page,       $page_size,       $from_date,      $to_date,
       $status_code,  $user_email, $path,            $request_method, $user_agent,
-      $request_host, $query,      $time_taken_less, $time_taken_greater
+      $request_host, $query,      $time_taken_less, $time_taken_greater, $user_id
     );
     $c->render(json => $results) if $results;    # if results is falsy then weve already errored out and responded
   }

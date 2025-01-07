@@ -85,12 +85,10 @@ sub resolve_jwt_claim ($self, $c, $claim_spec) {
       # match claim spec of format ':' + user model field name + (optional - /[i or b] for integer or boolean coercion)
       if ($spec =~ m/^:([\w\d_]+){1,}(\/([ib]+){1,})?/) {
 
-        # see if the requested field is "safe/allowed"... note we add "email" manually
-        # since that list of allowed fields from user service does not have that
-        # (since users can't change their email [yet])
+        # see if the requested field is "safe/allowed"...
         for my $user_field ($self->user_service->user_obj_allowed_fields->@*) {
-          if (($1 eq 'email' || $1 eq $user_field) && $c->session->{ user }->{ email }) {
-            my $user_record = $self->user_service->_get_user($c->session->{ user }->{ email });
+          if (($1 eq 'id' || $1 eq $user_field) && $c->session->{ user }->{ id }) {
+            my $user_record = $self->user_service->_get_user($c->session->{ user }->{ id });
             if ($user_record) {
               if ($3 && $3 eq 'i') {
                 # we want integer coercion, if it looks like number do conversion, otherwise undef

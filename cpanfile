@@ -7,4 +7,4 @@ requires 'Crypt::Bcrypt';
 requires 'Data::Entropy::Algorithms';
 requires 'Auth::GoogleAuth';
 requires 'JSON::Validator::Joi';
-
+requires 'UUID::Tiny';

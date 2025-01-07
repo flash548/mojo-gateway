@@ -1,35 +1,25 @@
 -- 1 up
 CREATE TABLE users (
-  email VARCHAR UNIQUE PRIMARY KEY,
-  dod_id INTEGER,
+  id UUID PRIMARY KEY,
+  email VARCHAR UNIQUE,
+  first_name VARCHAR(255),
+  last_name VARCHAR(255),
+  user_id VARCHAR(255),
   is_admin BOOLEAN DEFAULT FALSE,
-  password VARCHAR
+  last_login TIMESTAMP,
+  last_reset TIMESTAMP,
+  reset_password BOOLEAN DEFAULT FALSE,
+  mfa_secret VARCHAR(4096),
+  is_mfa BOOLEAN DEFAULT FALSE,
+  locked BOOLEAN DEFAULT FALSE,
+  bad_attempts INTEGER,
+  password VARCHAR(255)
 );
 -- 2 up
-ALTER TABLE users
-ADD COLUMN reset_password BOOLEAN DEFAULT FALSE;
--- 3 up
-ALTER TABLE users
-ADD COLUMN last_reset TIMESTAMP;
--- 4 up
-ALTER TABLE users
-ADD COLUMN last_login TIMESTAMP;
--- 5 up
-ALTER TABLE users
-ADD COLUMN first_name VARCHAR(255);
-ALTER TABLE users
-ADD COLUMN last_name VARCHAR(255);
-
--- generify to a more agnostic term
--- this is not a UNIQUE field... only thing unique still
--- is 'email' since its the primary key
-ALTER TABLE users
-  RENAME COLUMN dod_id TO user_id;
-
--- 6 up
 CREATE TABLE http_logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_email VARCHAR, 
+  user_id UUID,
+  user_email VARCHAR,
   response_status INTEGER,
   request_path VARCHAR(255),
   request_query_string VARCHAR(255),
@@ -40,11 +30,3 @@ CREATE TABLE http_logs (
   time_taken_ms INTEGER,
   foreign key(user_email) references users(email)
 );
-
--- 7 up
-ALTER TABLE users ADD COLUMN mfa_secret VARCHAR;
-ALTER TABLE users ADD COLUMN is_mfa BOOLEAN DEFAULT FALSE;
-
--- 8 up
-ALTER TABLE users ADD COLUMN locked BOOLEAN DEFAULT FALSE;
-ALTER TABLE users ADD COLUMN bad_attempts INTEGER;

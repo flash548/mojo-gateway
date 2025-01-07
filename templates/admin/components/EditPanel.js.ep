@@ -5,6 +5,7 @@ export function EditPanel(props) {
     isSubmitting: false,
     resultMessage: "",
     selectedUser: { ...props.selectedUser } || {
+      id: "",
       first_name: "",
       last_name: "",
       email: "",

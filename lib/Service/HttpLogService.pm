@@ -42,6 +42,7 @@ sub end_trace ($self, $c) {
   if ($time_delta) {
     $self->db->insert(
       http_logs => {
+        user_id              => $c->session->{user}->{id},
         user_email           => $c->session->{user}->{email},
         response_status      => $c->res->code,
         request_path         => $c->req->url->path->to_string,
@@ -64,7 +65,7 @@ sub end_trace ($self, $c) {
 sub _validate_search_params (
   $self,                  $c,                       $status_code_is,      $user_email_contains,
   $path_contains,         $request_method_is,       $user_agent_contains, $request_host_contains,
-  $query_string_contains, $time_taken_ms_less_than, $time_taken_ms_greater_than
+  $query_string_contains, $time_taken_ms_less_than, $time_taken_ms_greater_than, $user_id_is
 ) {
   # status code - if provided - needs to be a number
   if (defined($status_code_is) && !looks_like_number($status_code_is)) {
@@ -75,6 +76,12 @@ sub _validate_search_params (
   # user-email must contain valid chars (more to do there)
   if (defined($user_email_contains) && $user_email_contains =~ m/;/) {
     $c->render(json => {message => "Email contains invalid characters"}, status => Constants::HTTP_BAD_REQUEST);
+    return;
+  }
+
+  # user-id must contain valid chars (more to do there)
+  if (defined($user_id_is) && $user_id_is =~ m/[^a-z0-9-]+/i) {
+    $c->render(json => {message => "User ID must be alphanumeric with hyphens"}, status => Constants::HTTP_BAD_REQUEST);
     return;
   }
 
@@ -138,7 +145,7 @@ sub _build_query (
   $self,                    $page,                $page_size,             $from_date,
   $to_date,                 $status_code_is,      $user_email_contains,   $path_contains,
   $request_method_is,       $user_agent_contains, $request_host_contains, $query_string_contains,
-  $time_taken_ms_less_than, $time_taken_ms_greater_than
+  $time_taken_ms_less_than, $time_taken_ms_greater_than, $user_id_is
 ) {
   my @bindings    = ($from_date, $to_date);
   my $items_query = <<QUERY_END;
@@ -198,6 +205,12 @@ QUERY_END
     $query .= " and lower(request_query_string) like ?";
   }
 
+  if (defined($user_id_is)) {
+    push @bindings, lc $user_id_is;
+    $query .= " and lower(user_id) = ?";
+  }
+
+
   # stop here for the total_count_query, next part is just for slicing/paginating
   my $total_count_query    = $items_total_query . $query;
   my @total_count_bindings = @bindings;
@@ -235,6 +248,7 @@ QUERY_END
 # total_items: n,
 # results: [
 #  {
+#   user_id,
 #   user_email,
 #   response_status,
 #   request_path,
@@ -250,7 +264,7 @@ sub get_logs (
   $self,                  $c,                       $page,                $page_size,
   $from_date,             $to_date,                 $status_code_is,      $user_email_contains,
   $path_contains,         $request_method_is,       $user_agent_contains, $request_host_contains,
-  $query_string_contains, $time_taken_ms_less_than, $time_taken_ms_greater_than
+  $query_string_contains, $time_taken_ms_less_than, $time_taken_ms_greater_than, $user_id
 ) {
 
   # do some validation, quit now (returning undef) if validation returns
@@ -259,7 +273,7 @@ sub get_logs (
     unless $self->_validate_search_params(
     $c,                       $status_code_is,      $user_email_contains,   $path_contains,
     $request_method_is,       $user_agent_contains, $request_host_contains, $query_string_contains,
-    $time_taken_ms_less_than, $time_taken_ms_greater_than
+    $time_taken_ms_less_than, $time_taken_ms_greater_than, $user_id
     );
 
   # build query(s) from given search params
@@ -267,7 +281,7 @@ sub get_logs (
     $page,                $page_size,             $from_date,             $to_date,
     $status_code_is,      $user_email_contains,   $path_contains,         $request_method_is,
     $user_agent_contains, $request_host_contains, $query_string_contains, $time_taken_ms_less_than,
-    $time_taken_ms_greater_than
+    $time_taken_ms_greater_than, $user_id
   )->@*;
 
   # get the items from the built query

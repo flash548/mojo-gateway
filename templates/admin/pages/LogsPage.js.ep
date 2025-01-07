@@ -58,6 +58,7 @@ export default function LogsPage() {
         headerName: "Query Params",
         suppressMovable: true,
       },
+      { field: "user_id", headerName: "UserId", suppressMovable: true },
       { field: "user_email", headerName: "User", suppressMovable: true },
       {
         field: "request_user_agent",
@@ -110,6 +111,7 @@ export default function LogsPage() {
       startDate: window.dayjs().utc().subtract(30, "d"),
       endDate: window.dayjs().utc(),
       statusCode: undefined,
+      user_id: undefined,
       email: undefined,
       path: undefined,
       method: undefined,
@@ -137,6 +139,10 @@ export default function LogsPage() {
     
         if (searchState.statusCode !== undefined) {
           searchReq += `&statusCode=${searchState.statusCode}`;
+        }
+
+        if (searchState.user_id !== undefined) {
+          searchReq += `&user_id=${searchState.user_id}`;
         }
     
         if (searchState.email !== undefined) {
@@ -233,6 +239,18 @@ export default function LogsPage() {
               style="color: var(--defaultText); background-color: var(--tableHeaderBackgroundColor);"
               value=${searchState.statusCode ?? ''}
               onInput=${(e) => setSearchState({ ...searchState, statusCode: e.target.value })}
+            />
+          </div>
+          <div class="rux-form-field mb2 mr2" style="max-width:175px">
+            <label for="logs-status-user-id" class="rux-form-field__label"
+              >User ID</label
+            >
+            <input
+              id="logs-status-user-id-input"
+              type="input"
+              style="color: var(--defaultText); background-color: var(--tableHeaderBackgroundColor);"
+              value=${searchState.user_id ?? ''}
+              onInput=${(e) => setSearchState({ ...searchState, user_id: e.target.value })}
             />
           </div>
           <div class="rux-form-field mb2 mr2" style="max-width:175px">
