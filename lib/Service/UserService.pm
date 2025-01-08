@@ -297,6 +297,15 @@ sub update_user ($self, $c) {
           $existing_user->{ bad_attempts } = 0;
         } elsif (grep { $key =~ m/$_/ } @{ $self->user_obj_allowed_fields }) {
 
+          if ($key eq 'email') {
+            # check for uniqueness for email
+            my $other_user = $self->_get_user_by_username($c->req->json->{email});
+            if (defined($other_user) && $other_user->{id} ne $existing_user->{id}) {
+              $c->render(status => Constants::HTTP_CONFLICT, json => { message => 'Email is already used by another user' });
+              return;
+            }
+          }
+
           # if its an allowed field for the body model, then add it to the existing_user obj
           # we're about to persist...
           $existing_user->{ $key } = $user->{ $key };

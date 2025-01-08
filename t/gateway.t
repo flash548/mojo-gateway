@@ -362,4 +362,28 @@ subtest 'Test malformed user object is caught' => sub {
     ->status_is(Constants::HTTP_BAD_REQUEST);
 };
 
+subtest 'Test can change email of a user to another address so long as its still UNIQUE' => sub {
+  $t->post_ok('/auth/login', form => {username => 'admin@test.com', password => 'testpass'})
+      ->status_is(Constants::HTTP_OK)->content_unlike(qr/login/i, 'Login as admin user');
+
+  # add non-admin-user
+  $t->post_ok('/admin/users',
+    json => {email => 'dude5@test.com', password => 'dude5!', reset_password => 0, is_admin => 0})
+    ->status_is(Constants::HTTP_CREATED);
+
+  my $dude5_id = $t->tx->res->json("/id");
+
+  # add non-admin-user
+  $t->post_ok('/admin/users',
+    json => {email => 'dude6@test.com', password => 'dude6!', reset_password => 0, is_admin => 0})
+    ->status_is(Constants::HTTP_CREATED);
+
+  my $dude6_id = $t->tx->res->json("/id");
+
+  # change dude6 to dude5's email - should be 409
+  $t->put_ok('/admin/users',
+    json => {id => $dude6_id, email => 'dude5@test.com' })
+    ->status_is(Constants::HTTP_CONFLICT);
+}
+;
 done_testing();
