@@ -60,7 +60,6 @@ export function UsersPage() {
       ${state.show &&
       html`<${EditPanel}
         title=${state.action}
-        backgroundClicked=${() => setState({ ...state, show: false })}
         onAddUser=${(user) =>
           setState({ ...state, users: [...state.users, user], show: false })}
         onEditUser=${(user) => {

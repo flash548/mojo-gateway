@@ -131,7 +131,8 @@ export default function LogsPage() {
       getRows: (params) => {
         const pageSize = PAGE_SIZE;
         const page = Math.floor(params.startRow / pageSize);
-        let searchReq = `/admin/http_logs?fromDate=${searchState.startDate.format(
+        let baseUrl = '/admin/http_logs?';
+        let searchReq = `fromDate=${searchState.startDate.format(
           ISO_STRING_FORMAT
         )}&toDate=${searchState.endDate.format(
           ISO_STRING_FORMAT
@@ -176,8 +177,16 @@ export default function LogsPage() {
           searchReq += `&timeGreaterThan=${searchState.requestGreaterThan}`;
         }
 
+        const queryParams = new URLSearchParams(searchReq);
+        [...queryParams.entries()].forEach(([key, value]) => {
+          if (!value) {
+            queryParams.delete(key);
+          }
+        });
+        const cleaned = String(queryParams);
+
         let status = undefined;
-        fetch(searchReq)
+        fetch(`${baseUrl}${cleaned}`)
           .then((resp) => { status = resp.status; return resp.json(); })
           .then((data) => {
             if (status === 200) {

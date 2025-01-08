@@ -68,6 +68,17 @@ export function EditPanel(props) {
             }}
           >
             <div class="rux-form-field mb2">
+              <label for="user-id" class="rux-form-field__label"
+                >UserID</label
+              >
+              <input
+                id="user-id-input"
+                type="text"
+                readonly
+                value=${state.selectedUser.id}
+              />
+            </div>
+            <div class="rux-form-field mb2">
               <label for="user-first_name" class="rux-form-field__label"
                 >First Name</label
               >

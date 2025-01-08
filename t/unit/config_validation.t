@@ -1,5 +1,6 @@
 use Test::Mojo;
 use Test::More;
+use Mojo::Log;
 use Service::ConfigValidationService;
 binmode STDOUT, ":encoding(UTF-8)";
 # Tests the config validation logic
@@ -22,7 +23,7 @@ subtest 'Test good validation' => sub {
   };
 
   eval {
-    Service::ConfigValidationService->new(config => $options)->validate_config;
+    Service::ConfigValidationService->new(config => $options, logger => Mojo::Log->new)->validate_config;
   };
   ok $@ eq '', 'Test Config Good - No Template routing';
 };
@@ -46,7 +47,7 @@ subtest 'Test validation with proxy routes and routes to a template' => sub {
   };
 
   eval {
-    Service::ConfigValidationService->new(config => $options)->validate_config;
+    Service::ConfigValidationService->new(config => $options, logger => Mojo::Log->new)->validate_config;
   };
   ok $@ eq '', 'Test Config Good - Both proxy and template routes';
 };
@@ -70,7 +71,7 @@ subtest 'Test validation fail with dual uri/template fields on default route spe
   };
 
   eval {
-    Service::ConfigValidationService->new(config => $options)->validate_config;
+    Service::ConfigValidationService->new(config => $options, logger => Mojo::Log->new)->validate_config;
   };
   ok grep { m/Cannot specify both uri and template fields on the default route spec/ } $@, 'Test Config bad - bad default route';
 };
@@ -94,7 +95,7 @@ subtest 'Test validation fail with dual uri/template fields' => sub {
   };
 
   eval {
-    Service::ConfigValidationService->new(config => $options)->validate_config;
+    Service::ConfigValidationService->new(config => $options, logger => Mojo::Log->new)->validate_config;
   };
   ok grep { m/Cannot specify both uri and template fields on a proxy route spec/ } $@, 'Test Config bad - route spec';
 };

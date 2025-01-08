@@ -3,6 +3,7 @@ use Mojo::Base -base, -signatures;
 use JSON::Validator::Joi qw(joi);
 
 has 'config';
+has 'logger';
 
 sub validate_config ($self) {
   my $config = joi->object->props(
@@ -36,7 +37,7 @@ sub validate_config ($self) {
       unless $self->config->{ mfa_secret } && $self->config->{ mfa_issuer } && $self->config->{ mfa_key_id };
   }
 
-  say "Validating config...";
+  $self->logger->info("Validating config...");
   my @errors = $config->strict->validate($self->config);
   if (@errors) {
     die @errors;
@@ -50,7 +51,7 @@ sub validate_config ($self) {
     spaces     => joi->boolean->required
   );
 
-  say "Validating password complexity config...";
+  $self->logger->info("Validating password complexity config...");
   @errors = $password_complex_config->strict->validate($self->config->{ password_complexity });
   if (@errors) {
     die @errors;
@@ -70,7 +71,7 @@ sub validate_config ($self) {
   # validation spec for a local / template spec
   my $route_local_spec = joi->object->props(template_name => joi->string->required, requires_login => joi->boolean);
 
-  say "Validating default route config...";
+  $self->logger->info("Validating default route config...");
   if (defined($self->config->{ default_route }->{ template_name })
     && !defined($self->config->{ default_route }->{ uri })) {
     @errors = $route_local_spec->validate($self->config->{ default_route });
@@ -84,9 +85,9 @@ sub validate_config ($self) {
     die @errors;
   }
 
-  say "Validating route config...";
+  $self->logger->info("Validating route config...");
   for my $route (keys($self->config->{ routes }->%*)) {
-    say "On route " . $route;
+    $self->logger->info("On route " . $route);
     if (defined($self->config->{ routes }->{ $route }->{ template_name })
       && !defined($self->config->{ routes }->{ $route }->{ uri })) {
       @errors = $route_local_spec->validate($self->config->{ routes }->{ $route });
@@ -101,7 +102,7 @@ sub validate_config ($self) {
     }
   }
 
-  say "App Config - Valid ✅";
+  $self->logger->info("App Config - Valid");
 }
 
 
