@@ -60,12 +60,11 @@ export function UsersPage() {
       ${state.show &&
       html`<${EditPanel}
         title=${state.action}
-        backgroundClicked=${() => setState({ ...state, show: false })}
         onAddUser=${(user) =>
           setState({ ...state, users: [...state.users, user], show: false })}
         onEditUser=${(user) => {
           const index = state.users.findIndex(
-            (elem) => elem.email === user.email
+            (elem) => elem.id === user.id
           );
           if (index !== undefined) {
             const updatedState = [...state.users];

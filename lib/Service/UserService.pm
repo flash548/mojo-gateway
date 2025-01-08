@@ -6,6 +6,9 @@ use Auth::GoogleAuth;
 use Password::Utils;
 use Constants;
 use Utils;
+use UUID::Tiny ':std';
+
+use constant ADMIN_DEFAULT_ID => 'b48fd871-c21f-49b1-ac6a-b632129a023a';
 
 has 'db';
 has 'config';
@@ -13,12 +16,14 @@ has 'password_util' => sub { Password::Utils->new };
 
 # other fields/keys ALLOWED to POST/PUT (otherwise they're ignored)
 has 'user_obj_allowed_fields' =>
-  sub { ['reset_password', 'first_name', 'last_name', 'is_admin', 'user_id', 'is_mfa', 'locked'] };
+  sub { ['email', 'reset_password', 'first_name', 'last_name', 'is_admin', 'user_id', 'is_mfa', 'locked'] };
 
 # creates a default admin user if it doesnt exist
 sub create_admin_user ($self) {
+
   $self->db->insert(
     users => {
+      id => ADMIN_DEFAULT_ID,
       email    => lc $self->config->{ admin_user },
       password => $self->password_util->encode_password($self->config->{ admin_pass }),
       user_id  => 123456789,
@@ -31,12 +36,12 @@ sub create_admin_user ($self) {
 # authentication
 sub check_user_status ($self, $c) {
 
-  my $email = $c->session->{ user }->{ email };
+  my $id = $c->session->{ user }->{ id };
   my $record;
 
   # if there's no current_user populated in the session cookie
   # then we're not authenticated, OR if we fail user lookup, then re-direct to the sign-in page...
-  if (!$email || !defined(do { $record = $self->_get_user($email); $record; })) {
+  if (!$id || !defined(do { $record = $self->_get_user($id); $record; })) {
 
     # set return_to value to go back to initially requested url
     # dont allow redirect back to itself - default to /
@@ -102,7 +107,7 @@ sub check_user_status ($self, $c) {
     # if last_reset is undef, then set it to now, not sure how'd that be though, should default to current date time
     # otherwise check the age of the password
     if (!defined($record->{ last_reset })) {
-      $self->db->update("users", { last_reset => get_gmstamp() }, { email => lc $email });
+      $self->db->update("users", { last_reset => get_gmstamp() }, { id => lc $id });
     } else {
 
       # check days delta between NOW and last_reset
@@ -125,7 +130,7 @@ sub check_user_status ($self, $c) {
   } elsif (!$record->{ is_mfa } && defined($record->{ mfa_secret })) {
 
     # if user is disenrolled from MFA but has a secret still on file - null that out
-    $self->db->update('users', { mfa_secret => undef }, { email => $email });
+    $self->db->update('users', { mfa_secret => undef }, { id => $id });
   }
 
   # continue on
@@ -143,17 +148,17 @@ sub do_login ($self, $c) {
   my $username = lc $c->req->param('username');
   my $password = $c->req->param('password');
 
-  my $record = $self->_get_user($username);
+  my $record = $self->_get_user_by_username($username);
   if ($record && $self->password_util->check_pass($record->{ password }, $password)) {
 
     # fix an undef 'last_reset' to now
     if (!defined($record->{ last_reset })) {
-      $self->db->update("users", { last_reset => $self->get_gmstamp() }, { email => $username });
-      $record = $self->_get_user($username);
+      $self->db->update("users", { last_reset => $self->get_gmstamp() }, { id => $record->{id} });
+      $record = $self->_get_user($record->{id});
     }
 
     # set the session cookie username - since user/pass was good
-    $c->session->{ user } = { email => $record->{ email } };
+    $c->session->{ user } = { id => $record->{ id } };
 
     # if user account is set to be MFA-enabled, then check to see if we
     # need to set that up...
@@ -171,7 +176,7 @@ sub do_login ($self, $c) {
 
       # update person's last login time, set the session to the user's record
       # and return them to where they were trying to go to (or default to /)
-      $self->db->update("users", { last_login => $self->get_gmstamp(), bad_attempts => 0 }, { email => $username });
+      $self->db->update("users", { last_login => $self->get_gmstamp(), bad_attempts => 0 }, { id => $record->{id} });
       $c->redirect_to($c->flash('return_to') // $self->get_fallback_landing_page());
     }
   } else {
@@ -184,7 +189,7 @@ sub do_login ($self, $c) {
       $self->db->update(
         "users",
         { bad_attempts => $bad_attempts, locked => $locked ? 'true' : 'false' },
-        { email        => $username }
+        { id        => $record->{id} }
       );
     }
     $c->render('login_page', acct_locked => $locked, login_failed => 1, user => $username);
@@ -192,13 +197,18 @@ sub do_login ($self, $c) {
 }
 
 # private method to get a user from the database with all fields present
-sub _get_user ($self, $username) {
+sub _get_user ($self, $id) {
+  return $self->db->select("users", undef, { id => lc $id })->hash;
+}
+
+# private method to get a user from the database with all fields present
+sub _get_user_by_username ($self, $username) {
   return $self->db->select("users", undef, { email => lc $username })->hash;
 }
 
 # private method to say whether a user exists or not
-sub _user_exists ($self, $username) {
-  return defined($self->_get_user($username));
+sub _user_exists ($self, $id) {
+  return defined($self->_get_user($id));
 }
 
 # gets all the users for the get-all-users endpoint
@@ -207,17 +217,17 @@ sub get_all_users ($self, $c) {
   $c->render(json => $users);
 }
 
-# helper to pull a single user from the db by their email
+# helper to pull a single user from the db by their id
 # using a private helper but sanatizing the return before we send it back
 sub get_single_user ($self, $c) {
-  my $user = $self->_get_user($c->req->param('email'));
+  my $user = $self->_get_user($c->req->param('id'));
   $self->sanatize_user_obj($user) if defined($user);
   return $user;
 }
 
 # helper to return a boolean on whether a user is admin-blessed
 sub check_user_admin ($self, $c) {
-  my $record = $self->_get_user($c->session->{ user }->{ email });
+  my $record = $self->_get_user($c->session->{ user }->{ id });
   return defined($record) && $record->{ is_admin };
 }
 
@@ -248,8 +258,9 @@ sub add_user ($self, $c) {
       }
     }
 
+    $user->{id} = create_uuid_as_string(UUID_V4);
     $self->db->insert(users => $user);
-    my $new_user = $self->_get_user($c->req->json->{ email });
+    my $new_user = $self->_get_user($user->{id});
 
     $self->sanatize_user_obj($new_user);
     $c->render(status => Constants::HTTP_CREATED, json => $new_user);
@@ -258,14 +269,14 @@ sub add_user ($self, $c) {
 
 # updates user
 sub update_user ($self, $c) {
-  if (!$c->req->json->{ email }) {
-    $c->render(json => { message => 'Email required minimum' }, status => Constants::HTTP_BAD_REQUEST);
+  if (!$c->req->json->{ id } || !$c->req->json->{email}) {
+    $c->render(json => { message => 'ID and Email required minimum' }, status => Constants::HTTP_BAD_REQUEST);
     return;
   }
 
-  if ($self->db->select('users', undef, { email => lc $c->req->json->{ email } })->hashes->size) {
+  if ($self->db->select('users', undef, { id => lc $c->req->json->{ id } })->hashes->size) {
 
-    my $existing_user = $self->_get_user(lc($c->req->json->{ email }));
+    my $existing_user = $self->_get_user(lc($c->req->json->{ id }));
 
     # now go through the keys of the payload and update the existing_user record
     # if new field wasn't undefined - that way we dont always have to provide password updates if we're not changing it
@@ -286,6 +297,15 @@ sub update_user ($self, $c) {
           $existing_user->{ bad_attempts } = 0;
         } elsif (grep { $key =~ m/$_/ } @{ $self->user_obj_allowed_fields }) {
 
+          if ($key eq 'email') {
+            # check for uniqueness for email
+            my $other_user = $self->_get_user_by_username($c->req->json->{email});
+            if (defined($other_user) && $other_user->{id} ne $existing_user->{id}) {
+              $c->render(status => Constants::HTTP_CONFLICT, json => { message => 'Email is already used by another user' });
+              return;
+            }
+          }
+
           # if its an allowed field for the body model, then add it to the existing_user obj
           # we're about to persist...
           $existing_user->{ $key } = $user->{ $key };
@@ -299,8 +319,8 @@ sub update_user ($self, $c) {
     }
 
     # commit the update
-    $self->db->update('users', $existing_user, { email => lc($existing_user->{ email }) });
-    my $updated_user = $self->_get_user(lc($existing_user->{ email }));
+    $self->db->update('users', $existing_user, { id => lc($existing_user->{ id }) });
+    my $updated_user = $self->_get_user($existing_user->{ id });
 
     # dont ever return the password or the MFA secret
     $self->sanatize_user_obj($updated_user);
@@ -349,7 +369,7 @@ sub do_password_change ($self, $c) {
   elsif (
     !$existing_password
     || !$self->password_util->check_pass(
-      $self->_get_user($c->session->{ user }->{ email })->{ password },
+      $self->_get_user($c->session->{ user }->{ id })->{ password },
       $existing_password
     )
   ) {
@@ -391,7 +411,7 @@ sub do_password_change ($self, $c) {
         bad_attempts   => 0,
         last_reset     => $self->get_gmstamp()
       },
-      { email => $c->session->{ user }->{ email } }
+      { id => $c->session->{ user }->{ id } }
     );
 
     $c->redirect_to($c->flash('return_to') // $self->get_fallback_landing_page());
@@ -422,15 +442,15 @@ sub get_days_since_gmstamp ($self, $time) {
   }
 }
 
-# deletes a single user - given their email
+# deletes a single user - given their ID
 sub delete_single_user ($self, $c) {
-  my $username = lc $c->req->param('email');
-  if (!$self->_user_exists($username)) {
+  my $id = lc $c->req->param('id');
+  if (!$self->_user_exists($id)) {
     $c->rendered(Constants::HTTP_NOT_FOUND);
     return;
   }
 
-  $self->db->delete('users', { email => $username });
+  $self->db->delete('users', { id => $id });
 }
 
 # handler to check a submitted MFA code against the server's
@@ -438,7 +458,7 @@ sub delete_single_user ($self, $c) {
 sub check_mfa_code ($self, $c) {
 
   # pull users record...so we can get their MFA secret
-  my $record = $self->_get_user($c->session->{ user }->{ email });
+  my $record = $self->_get_user($c->session->{ user }->{ id });
   if (!$record || !$record->{ mfa_secret } || !$record->{ is_mfa }) {
     $c->render(text => 'This is not a valid account for MFA');
     return;
@@ -465,8 +485,8 @@ sub check_mfa_code ($self, $c) {
     # update person's last login time, set the session to the user's record
     # and return them to where they were trying to go to (or default to /)
     delete $c->session->{ user_pass_ok };
-    $self->db->update("users", { last_login => $self->get_gmstamp() }, { email => $record->{ email } });
-    $c->session->{ user } = { email => $record->{ email } };
+    $self->db->update("users", { last_login => $self->get_gmstamp() }, { id => $record->{ id } });
+    $c->session->{ user } = { id => $record->{ id } };
     $c->redirect_to($c->flash('return_to') // $self->get_fallback_landing_page());
   }
 }
@@ -499,7 +519,7 @@ sub finalize_mfa_setup ($self, $c) {
   $c->flash({ return_to => $c->flash('return_to') });
 
   # store this users secret
-  $self->db->update('users', { mfa_secret => $c->flash('qr_code') }, { email => $c->session->{ user }->{ email } });
+  $self->db->update('users', { mfa_secret => $c->flash('qr_code') }, { id => $c->session->{ user }->{ id } });
 
   $c->redirect_to($c->flash('return_to') // $self->get_fallback_landing_page());
 }

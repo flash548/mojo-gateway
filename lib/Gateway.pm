@@ -26,9 +26,10 @@ my $reserved_routes = ['/admin', '/auth', '/login', '/logout'];
 
 sub startup ($self) {
   my $config = $self->plugin('JSONConfig');
+  $self->log->info("Loading config... " . ($ENV{MOJO_CONFIG} or "Unknown File"));
 
   # validate our config before doing anything
-  Service::ConfigValidationService->new(config => $self->config)->validate_config();
+  Service::ConfigValidationService->new(config => $self->config, logger => $self->log)->validate_config();
 
   $self->secrets([$config->{ secret }]);
   $self->sessions->cookie_name($config->{ cookie_name } // 'mojolicious');
@@ -53,6 +54,7 @@ sub startup ($self) {
     }
   );
 
+  # store the db handle in a helper we can use in the app services
   $self->helper(
     db_conn => sub {
 
@@ -81,6 +83,7 @@ sub startup ($self) {
     }
   );
 
+  # do migrations
   if (!$ENV{ test } && defined($config->{ db_type }) && $config->{ db_type } eq 'sqlite') {
     $self->db_conn->auto_migrate(1)->migrations->from_file('./migrations/data.sql');
   } elsif (!defined($config->{ test }) && $config->{ db_type } eq 'pg') {
@@ -89,6 +92,7 @@ sub startup ($self) {
     $self->db_conn->auto_migrate(1)->migrations->from_file('./migrations/data.sql');
   }
 
+  # init our service classes (business logic, etc)
   $self->user_service(Service::UserService->new(db => $self->db_conn->db, config => $config));
   $self->http_log_service(Service::HttpLogService->new(db => $self->db_conn->db, config => $config));
   $self->proxy_service(
@@ -97,10 +101,10 @@ sub startup ($self) {
     Controller::AdminController->new(user_service => $self->user_service, log_service => $self->http_log_service));
   $self->user_controller(Controller::UserController->new(user_service => $self->user_service));
 
-  # create the admin user if it doesn't exist
+  # create the admin user account if it doesn't exist
   $self->user_service->create_admin_user;
 
-  # mark all users as MFA enabled if that option is set
+  # mark all users as MFA enabled if that option is set in the app config
   $self->user_service->mark_all_as_mfa;
 
   # login/logout shortcut - always reachable
@@ -209,7 +213,7 @@ sub startup ($self) {
     my $temp_ctrlr = Mojolicious::Controller->new;
     my $match = Mojolicious::Routes::Match->new(root => $self->routes);
     if ($match->find($temp_ctrlr => {method => 'GET', path => '/'}) == 0) {
-      say "No handler for '/' specified => going to use the secured/locked-down default_route";
+      $self->log->warn("No handler for '/' specified => going to use the secured/locked-down default_route");
       $authorized_routes->any('/' => sub ($c) {
           $self->proxy_service->proxy($c, 'default_route');
         }
@@ -227,8 +231,7 @@ sub startup ($self) {
     );
   }
   # For if our default route in the config specifies that it does NOT require
-  # login then add that here and now, otherwise it'll be later on in the auth'd routes
-  # below
+  # login then add that here
   elsif (defined($config->{ default_route }->{ requires_login }) && !$config->{ default_route }->{ requires_login }) {
     $self->routes->add_condition(
       check_no_admin => sub ($route, $c, $captures, $opts) {
@@ -240,7 +243,7 @@ sub startup ($self) {
     my $temp_ctrlr = Mojolicious::Controller->new;
     my $match = Mojolicious::Routes::Match->new(root => $self->routes);
     if ($match->find($temp_ctrlr => {method => 'GET', path => '/'}) == 0) {
-      say "No handler for '/' specified => going to use the default_route";
+      $self->log->warn("No handler for '/' specified => going to use the default_route");
       $self->routes->any('/')->requires(check_no_admin => 1)->to(
         cb => sub ($c) {
           $self->proxy_service->proxy($c, 'default_route');

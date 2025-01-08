@@ -1,4 +1,5 @@
 use Mojolicious;
+use Mojo::Collection;
 use Test::Mojo;
 use Test::More;
 use Mojo::UserAgent -signatures;
@@ -218,18 +219,22 @@ subtest 'Test that user secret is undef-d on user PUT from API' => sub {
     ->status_is(Constants::HTTP_OK)->content_unlike(qr/MFA/i, 'Admin login');
 
   # check user get ALL return doesn't have mfa_secret in it or password
-  my $size = $t->app->db_conn->db->select('users')->hashes->size;
-  for (my $i = 0; $i < $size; $i++) {
-    $t->get_ok('/auth/users')->status_is(Constants::HTTP_OK)->json_hasnt("/${i}/mfa_secret")
-      ->json_hasnt("/${i}/password");
+  my $users_all = $t->app->db_conn->db->select('users')->hashes;
+  for (my $i = 0; $i < $users_all->size; $i++) {
+    $t->get_ok('/admin/users?id=' . $users_all->[$i]->{id})->status_is(Constants::HTTP_OK)->json_hasnt("/mfa_secret")
+      ->json_hasnt("/password");
   }
 
+  $t->get_ok('/admin/users')->status_is(Constants::HTTP_OK);
+  my $users = Mojo::Collection->new($t->tx->res->json)->flatten;
+  my $id = $users->first(sub { $_->{email} eq 'test-perler@test.com'})->{id};
+
   # check user get return doesn't have mfa_secret in it or password
-  $t->get_ok('/auth/users?email=test-perler@test.com')->status_is(Constants::HTTP_OK)->json_hasnt('/mfa_secret')
+  $t->get_ok('/admin/users?id=' . $id)->status_is(Constants::HTTP_OK)->json_hasnt('/mfa_secret')
     ->json_hasnt('/password');
 
   # login as admin and PUT update test-perler's account to not be MFA anymore
-  $t->put_ok('/admin/users' => json => {email => 'test-perler@test.com', is_mfa => 0, is_admin => 0,})
+  $t->put_ok('/admin/users' => json => {id => $id, email => 'test-perler@test.com', is_mfa => 0, is_admin => 0,})
     ->status_is(Constants::HTTP_OK)->json_hasnt('/mfa_secret')->json_hasnt('/password');
 
   # test the database secret is gone

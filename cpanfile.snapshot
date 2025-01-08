@@ -16,19 +16,6 @@ DISTRIBUTIONS
       perl 5.008
       strict 0
       warnings 0
-  CPAN-Meta-Requirements-2.143
-    pathname: R/RJ/RJBS/CPAN-Meta-Requirements-2.143.tar.gz
-    provides:
-      CPAN::Meta::Requirements 2.143
-      CPAN::Meta::Requirements::Range 2.143
-    requirements:
-      B 0
-      Carp 0
-      ExtUtils::MakeMaker 6.17
-      perl 5.010000
-      strict 0
-      version 0.88
-      warnings 0
   CPAN-Requirements-Dynamic-0.001
     pathname: L/LE/LEONT/CPAN-Requirements-Dynamic-0.001.tar.gz
     provides:
@@ -134,9 +121,10 @@ DISTRIBUTIONS
     requirements:
       DBI 1.57
       ExtUtils::MakeMaker 0
-      File::Spec 0.82
+      File::Spec 3.27
       Test::More 0.88
       Tie::Hash 0
+      Win32 0.30
       perl 5.006
   DBI-1.643
     pathname: T/TI/TIMB/DBI-1.643.tar.gz
@@ -238,6 +226,7 @@ DISTRIBUTIONS
       DBI::common 1.643
     requirements:
       ExtUtils::MakeMaker 6.48
+      File::Spec 3.31
       Test::Simple 0.90
       perl 5.008001
   Data-Entropy-0.007
@@ -333,6 +322,7 @@ DISTRIBUTIONS
       Carp 0
       Exporter 5.57
       ExtUtils::MakeMaker 0
+      ExtUtils::PL2Bat 0
       File::Basename 0
       File::Copy 0
       File::Spec::Functions 0
@@ -439,13 +429,14 @@ DISTRIBUTIONS
       ExtUtils::Install 0
       ExtUtils::Manifest 0
       ExtUtils::Mkbootstrap 0
+      ExtUtils::PL2Bat 0
       ExtUtils::ParseXS 2.21
       File::Basename 0
       File::Compare 0
       File::Copy 0
       File::Find 0
       File::Path 0
-      File::Spec 0.82
+      File::Spec 3.3
       Getopt::Long 0
       Module::Metadata 1.000002
       Perl::OSType 1
@@ -1016,6 +1007,19 @@ DISTRIBUTIONS
       URI 1.40
       URI::Nested 0.10
       perl 5.008001
+  UUID-Tiny-1.04
+    pathname: C/CA/CAUGUSTIN/UUID-Tiny-1.04.tar.gz
+    provides:
+      UUID::Tiny 1.04
+    requirements:
+      Carp 0
+      Digest::MD5 0
+      ExtUtils::MakeMaker 0
+      IO::File 0
+      MIME::Base64 0
+      POSIX 0
+      Test::More 0
+      Time::HiRes 0
   YAML-LibYAML-0.89
     pathname: T/TI/TINITA/YAML-LibYAML-0.89.tar.gz
     provides:

@@ -77,13 +77,17 @@ subtest 'Test User Login/Logout/Admin operations' => sub {
   $t->post_ok('/auth/login', form => {username => 'admin@test.com', password => 'testpass'})
     ->status_is(Constants::HTTP_OK)->content_like(qr/Admin/i, 'Log Back In Successfully - Land at Admin Page');
 
+  my $id = 'b48fd871-c21f-49b1-ac6a-b632129a023a';
+
 # make a new, non-admin user via API call with expired password (as the admin interface would do)
 # in the admin interface we dont enforce password complexity
 # return should be the new user record with expected fields - WITHOUT the password field hash
   $t->post_ok('/admin/users',
     json => {email => 'test@test.com', password => 'password', reset_password => 1, is_admin => 0,})
     ->status_is(Constants::HTTP_CREATED)->json_has('/email')->json_has('/user_id')->json_has('/is_admin')
-    ->json_has('/reset_password')->json_has('/last_reset')->json_has('/last_login')->json_hasnt('/password');
+    ->json_has('/reset_password')->json_has('/last_reset')->json_has('/last_login')->json_has('/id')->json_hasnt('/password');
+
+  my $users_id = $t->tx->res->json('/id');
 
   # try to add them again and get a 409 (already exists)
   $t->post_ok('/admin/users', json => {email => 'test@test.com', password => 'password', is_admin => 0,})
@@ -190,8 +194,8 @@ subtest 'Test User Login/Logout/Admin operations' => sub {
   $t->post_ok('/auth/login', form => {username => 'admin@test.com', password => 'testpass'})
     ->status_is(Constants::HTTP_OK)->content_like(qr/Admin/, 'Make sure we are not at the login page anymore');
 
-  $t->put_ok('/admin/users', json => {email => 'test@test.com', user_id => '222222', callsign => 'japh'})
-    ->status_is(Constants::HTTP_OK)->json_is('/email' => 'test@test.com')->json_is('/user_id' => 222222)
+  $t->put_ok('/admin/users', json => {id => $users_id, email => 'test@test.com', user_id => '222222', callsign => 'japh'})
+    ->status_is(Constants::HTTP_OK)->json_is('/email' => 'test@test.com')->json_is('/user_id' => 222222)->json_is('/id' => $users_id)
     ->json_is('/is_admin' => 0)->json_is('/reset_password' => 0)
     ->json_unlike('/last_reset' => qr/2022-01-01T00:00:00Z/)->json_hasnt('/callsign')->json_hasnt('/password');
 
@@ -213,8 +217,8 @@ subtest 'Test User Login/Logout/Admin operations' => sub {
     ->status_is(Constants::HTTP_OK);
 
   $t->delete_ok('/admin/users')->status_is(Constants::HTTP_BAD_REQUEST, 'Bad request');
-  $t->delete_ok('/admin/users?email=test2@test.com')->status_is(Constants::HTTP_NOT_FOUND, 'Bogus user delete');
-  $t->delete_ok('/admin/users?email=test@test.com')->status_is(Constants::HTTP_OK, 'Successfully deleted user');
+  $t->delete_ok('/admin/users?id=123456abcdef')->status_is(Constants::HTTP_NOT_FOUND, 'Bogus user delete');
+  $t->delete_ok('/admin/users?id=' . $users_id)->status_is(Constants::HTTP_OK, 'Successfully deleted user');
 
   # trust but verify user deleted
   $t->get_ok('/admin/users')->status_is(Constants::HTTP_OK)
@@ -235,18 +239,21 @@ subtest 'Test user account updates cannot modify read-only fields' => sub {
 
   my ($last_login, $last_reset);
 
+  ## from our app constant
+  my $admin_id = 'b48fd871-c21f-49b1-ac6a-b632129a023a';
+
   # get current reset date and last_login
-  $t->get_ok('/admin/users?email=admin@test.com')->status_is(Constants::HTTP_OK)->tap(sub ($t) {
+  $t->get_ok('/admin/users?id=' . $admin_id)->status_is(Constants::HTTP_OK)->tap(sub ($t) {
     $last_login = $t->tx->res->json->{last_login};
     $last_reset = $t->tx->res->json->{last_reset};
   });
 
 # post an update to self as admin to try to changed the last_reset and last_login fields
-  $t->put_ok('/admin/users', json => {email => 'admin@test.com', last_reset => '2022-08-01T12:00:00Z'})
+  $t->put_ok('/admin/users', json => {id => $admin_id, email => 'admin@test.com', last_reset => '2022-08-01T12:00:00Z'})
     ->status_is(Constants::HTTP_OK);
 
   # check the read-only fields are not changed
-  $t->get_ok('/admin/users?email=admin@test.com')->status_is(Constants::HTTP_OK)
+  $t->get_ok('/admin/users?id=' . $admin_id)->status_is(Constants::HTTP_OK)
     ->json_is('/last_reset', $last_reset, 'Last Reset field is unchanged')
     ->json_is('/last_login', $last_login, 'Last Login field is unchanged');
 
@@ -355,4 +362,28 @@ subtest 'Test malformed user object is caught' => sub {
     ->status_is(Constants::HTTP_BAD_REQUEST);
 };
 
+subtest 'Test can change email of a user to another address so long as its still UNIQUE' => sub {
+  $t->post_ok('/auth/login', form => {username => 'admin@test.com', password => 'testpass'})
+      ->status_is(Constants::HTTP_OK)->content_unlike(qr/login/i, 'Login as admin user');
+
+  # add non-admin-user
+  $t->post_ok('/admin/users',
+    json => {email => 'dude5@test.com', password => 'dude5!', reset_password => 0, is_admin => 0})
+    ->status_is(Constants::HTTP_CREATED);
+
+  my $dude5_id = $t->tx->res->json("/id");
+
+  # add non-admin-user
+  $t->post_ok('/admin/users',
+    json => {email => 'dude6@test.com', password => 'dude6!', reset_password => 0, is_admin => 0})
+    ->status_is(Constants::HTTP_CREATED);
+
+  my $dude6_id = $t->tx->res->json("/id");
+
+  # change dude6 to dude5's email - should be 409
+  $t->put_ok('/admin/users',
+    json => {id => $dude6_id, email => 'dude5@test.com' })
+    ->status_is(Constants::HTTP_CONFLICT);
+}
+;
 done_testing();
