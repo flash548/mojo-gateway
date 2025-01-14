@@ -226,7 +226,7 @@ subtest 'Test that user secret is undef-d on user PUT from API' => sub {
   }
 
   $t->get_ok('/admin/users')->status_is(Constants::HTTP_OK);
-  my $users = Mojo::Collection->new($t->tx->res->json)->flatten;
+  my $users = Mojo::Collection->new($t->tx->res->json->{results})->flatten;
   my $id = $users->first(sub { $_->{email} eq 'test-perler@test.com'})->{id};
 
   # check user get return doesn't have mfa_secret in it or password

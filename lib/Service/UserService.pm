@@ -7,6 +7,8 @@ use Password::Utils;
 use Constants;
 use Utils;
 use UUID::Tiny ':std';
+use POSIX       qw/ceil/;
+use Scalar::Util qw/looks_like_number/;
 
 use constant ADMIN_DEFAULT_ID => 'b48fd871-c21f-49b1-ac6a-b632129a023a';
 
@@ -213,8 +215,21 @@ sub _user_exists ($self, $id) {
 
 # gets all the users for the get-all-users endpoint
 sub get_all_users ($self, $c) {
-  my $users = $self->db->select('users')->hashes->map(sub { $self->sanatize_user_obj($_); $_; });
-  $c->render(json => $users);
+  my $page = looks_like_number($c->req->param('page')) ? $c->req->param('page') : 0;
+  my $page_size = looks_like_number($c->req->param('pageSize')) ? $c->req->param('pageSize') : 25;
+
+  my $count = $self->db->query('select count(*) from users')->arrays->[0]->[0];
+  my $users = $self->db->query('select * from users order by last_name asc limit ? offset ? ', $page_size, $page*$page_size)
+    ->hashes->map(sub { $self->sanatize_user_obj($_); $_; });
+
+  my $ret_val = {
+    page        => int($page),
+    page_size   => int($page_size),
+    total_items => $count,
+    total_pages => ceil($count / $page_size),
+    results     => $users,
+  };
+  $c->render(json => $ret_val);
 }
 
 # helper to pull a single user from the db by their id
