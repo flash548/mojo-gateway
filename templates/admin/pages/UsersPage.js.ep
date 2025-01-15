@@ -40,9 +40,8 @@ export function UsersPage() {
   }
 
   return html`
-    <div class="flex flex-column w-100">
+    <div class="flex flex-column w-100 h-100">
       <div class="flex w-100 justify-between items-center pa2">
-        <h3>Total User Count: ${state.users.length}</h3>
         <button
           onClick=${() =>
             setState({
