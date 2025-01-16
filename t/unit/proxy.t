@@ -21,9 +21,9 @@ sub start {
   for my $header (keys %{ $transaction->req->headers->to_hash }) {
     $res->headers->add($header => $transaction->req->headers->to_hash->{ $header });
   }
-  $res->headers->add(orig_location => $transaction->req->url);
-  $res->headers->add(location      => '/frontend');
-  $res->headers->add(content_type  => 'application/json');
+  $res->headers->header(orig_location => $transaction->req->url);
+  $res->headers->header(location      => '/frontend');
+  $res->headers->header(content_type  => 'application/json');
   $tx->res($res);
   return $tx;
 }
@@ -207,6 +207,43 @@ subtest 'check that we can do inbound request path rewrites' => sub {
 
   $t->get_ok('/ui/some-page')->status_is(Constants::HTTP_OK)->header_is('location' => '/frontend')
     ->header_is('orig_location' => 'http://localhost:3000/frontend/some-page');
+};
+
+subtest 'check that user provided Authorization header doesnt make it through the gateway with enable_jwt false' => sub {
+  my $config2 = $config;
+  $config2->{ routes }->{ '/ui/**' }->{ rewrite_path }->{ match } = "^/ui";
+  $config2->{ routes }->{ '/ui/**' }->{ rewrite_path }->{ with }  = "";
+  $config2->{ routes }->{ '/ui/**' }->{ enable_jwt }              = 0;
+  $config2->{ routes }->{ '/ui/**' }->{ requires_login }          = 0;
+  $config2->{ routes }->{ '/ui/**' }->{ uri }                     = 'http://localhost:3000/frontend';
+  my $t = Test::Mojo->new('Gateway', $config2);
+
+  $t->ua->max_redirects(3);
+
+  # inject our mocked UserAgent class
+  $t->app->proxy_service->ua(MockAgent->new);
+
+  $t->get_ok('/ui/some-page' => { Authorization => 'bogus'})->status_is(Constants::HTTP_OK)->header_exists_not('authorization', 'Header Existed');
+};
+
+subtest 'check that user provided Authorization header doesnt make it through the gateway with enable_jwt true' => sub {
+  my $config2 = $config;
+  $config2->{ routes }->{ '/ui/**' }->{ rewrite_path }->{ match } = "^/ui";
+  $config2->{ routes }->{ '/ui/**' }->{ rewrite_path }->{ with }  = "";
+  $config2->{ routes }->{ '/ui/**' }->{ enable_jwt }              = 1;
+  $config2->{ routes }->{ '/ui/**' }->{ requires_login }          = 0;
+  $config2->{ routes }->{ '/ui/**' }->{ uri }                     = 'http://localhost:3000/frontend';
+  my $t = Test::Mojo->new('Gateway', $config2);
+
+  $t->ua->max_redirects(3);
+
+  # inject our mocked UserAgent class
+  $t->app->proxy_service->ua(MockAgent->new);
+
+  $t->get_ok('/ui/some-page' => { Authorization => 'bogus'})->status_is(Constants::HTTP_OK)
+    ->header_exists('authorization', 'Header Existed')
+    ->header_unlike('Authorization' => qr/blah/i, 'User provided header not present')
+    ->header_like('Authorization' => qr/Bearer ey/i, 'Generated header present');
 };
 
 done_testing();

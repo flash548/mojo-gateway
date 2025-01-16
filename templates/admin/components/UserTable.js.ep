@@ -1,3 +1,11 @@
+/**
+ * fetchPage: (page, pageSize) => ({ results: T[], pageSize: number, page: number, total_elements: number, total_pages: number })
+ * pageSize: number
+ * columns: [ { field: string, name: string, sortable: boolean } ]
+ * @param props 
+ * @returns 
+ */
+
 export function UserTable(props) {
   const [state, setState] = useState({
     sortColumn: "email",
@@ -17,7 +25,7 @@ export function UserTable(props) {
     return list;
   }
 
-  return html`<div class="pa2">
+  return html`<div class="pa2 flex flex-column w-100 h-100">
     <div class=" flex justify-center mb4">
       <div class="rux-form-field w-50">
         <input
