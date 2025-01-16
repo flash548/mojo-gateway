@@ -11,7 +11,7 @@ export function UsersPage() {
       method: "GET",
     })
       .then((result) => result.json())
-      .then((users) => setState({ ...state, users }))
+      .then((users) => setState({ ...state, users: users.results }))
       .catch((err) => {
         showToast(err.message);
       });
@@ -20,14 +20,14 @@ export function UsersPage() {
   function deleteUser() {
     let user = state.selectedUser;
 
-    fetch(`/admin/users?email=${user.email.toLowerCase()}`, {
+    fetch(`/admin/users?id=${user.id}`, {
       method: "DELETE",
     })
       .then(() => {
         setState({
           ...state,
           users: state.users.filter(
-            (u) => u.email.toLowerCase() !== user.email.toLowerCase()
+            (u) => u.id !== user.id
           ),
           confirmDelete: false,
         });
@@ -40,9 +40,8 @@ export function UsersPage() {
   }
 
   return html`
-    <div class="flex flex-column w-100">
+    <div class="flex flex-column w-100 h-100">
       <div class="flex w-100 justify-between items-center pa2">
-        <h3>Total User Count: ${state.users.length}</h3>
         <button
           onClick=${() =>
             setState({

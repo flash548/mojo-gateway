@@ -179,7 +179,10 @@ sub proxy ($self, $c, $name) {
     }
     my $jwt = Mojo::JWT->new(claims => $claims, secret => $self->config->{ jwt_secret });
 
-    $request->headers->add('Authorization', 'Bearer ' . $jwt->encode);
+    $request->headers->header('Authorization', 'Bearer ' . $jwt->encode);
+  } else {
+    # be sure to strip the any provided Authorization headers out
+    $request->headers->remove('Authorization');
   }
 
   # add any other static-text headers specified in our config json

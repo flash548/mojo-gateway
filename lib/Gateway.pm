@@ -57,7 +57,6 @@ sub startup ($self) {
   # store the db handle in a helper we can use in the app services
   $self->helper(
     db_conn => sub {
-
       # config var 'test' will be defined if we're running unit tests,
       # otherwise see what type of DB we defined in the ENV VARs
       if (!$ENV{ test } && defined($config->{ db_type }) && $config->{ db_type } eq 'sqlite') {

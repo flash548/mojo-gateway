@@ -4,9 +4,25 @@ export function TabPanel(props) {
     activeIndex: 0,
     tabs: [...props.tabs],
   });
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    setContainerHeight();
+
+    window.onresize = () => {
+      setContainerHeight();
+    };
+  }, [containerRef.current]);
+
+  function setContainerHeight() {
+    if (containerRef.current) {
+      const height = `${window.innerHeight}px`;
+      containerRef.current.style = `height: ${height}; max-height: ${height}`;
+    }
+  }
 
   return html`
-    <div id="tab-panel-container" class="relative flex flex-column w-100">
+    <div ref=${containerRef} id="tab-panel-container" class="flex flex-column w-100">
       <div
         class="flex ph2 w-100 justify-between items-center"
         style=${"background-color: var(--tableHeaderBackgroundColor);"}

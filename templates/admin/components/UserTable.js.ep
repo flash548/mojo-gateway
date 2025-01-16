@@ -1,23 +1,110 @@
+/**
+ * fetchPage: (page, pageSize) => ({ results: T[], pageSize: number, page: number, total_elements: number, total_pages: number })
+ * pageSize: number
+ * columns: [ { field: string, name: string, sortable: boolean } ]
+ * @param props 
+ * @returns 
+ */
+
 export function UserTable(props) {
   const [state, setState] = useState({
     sortColumn: "email",
     sortDirection: "asc",
     searchEmail: "",
   });
+  const pageSize = 25;
+  const [grid, setGrid] = useState(null);
+  const tableContainerRef = useState(null);
+  const [tableHeight, setTableHeight] = useState(200);
 
-  function sortList(list) {
-    list.sort((a, b) => {
-      if (state.sortDirection === "asc") {
-        return a[state.sortColumn] > b[state.sortColumn] ? 1 : -1;
-      } else {
-        return a[state.sortColumn] > b[state.sortColumn] ? -1 : 1;
+  useEffect(() => {
+    if (tableContainerRef.current) {
+      setTableHeight(tableContainerRef.current.clientHeight);
+    }
+  }, [tableContainerRef.current])
+
+  useEffect(() => {
+    const columnDefs = [
+      {
+        field: "id",
+        headerName: "ID",
+        resizable: true,
+        suppressMovable: true,
+      },
+      {
+        field: "last_name",
+        headerName: "Last Name",
+        suppressMovable: true,
+      },
+      { field: "first_name", headerName: "First Name", suppressMovable: true },
+      { field: "email", headerName: "Email", suppressMovable: true },
+    ]; 
+
+    const gridOptions = {
+      columnDefs: columnDefs,
+      rowData: [],
+      rowSelection: "none",
+      domLayout: "normal",
+      rowModelType: "infinite",
+      cacheBlockSize: pageSize,
+      cacheOverflowSize: 2,
+      maxConcurrentDatasourceRequests: 1,
+      infiniteInitialRowCount: pageSize,
+      maxBlocksInCache: 10,
+      suppressCellSelection: true,
+    };
+
+    const gridDiv = document.querySelector("#usersGrid");
+    const gridVal = new agGrid.Grid(gridDiv, gridOptions);
+    gridVal.gridOptions.api.sizeColumnsToFit();
+    
+    window.onresize = () => {
+      if (gridVal) {
+        gridVal.gridOptions.api.sizeColumnsToFit();
+        if (tableContainerRef.current) {
+          setTableHeight(tableContainerRef.current.clientHeight);
+        }
       }
-    });
+    };
 
-    return list;
+    setGrid(gridVal);
+
+   }, [tableContainerRef.current]);
+
+  useEffect(() => {
+    onSearch();
+  }, [grid]);
+
+  function onSearch() {
+    if (grid == null) return;
+
+    const dataSource = {
+      rowCount: undefined,
+      getRows: (params) => {
+        const page = Math.floor(params.startRow / pageSize);
+        let baseUrl = `/admin/users?page=${page}&pageSize=${pageSize}`;
+        
+        let status = undefined;
+        fetch(`${baseUrl}`)
+          .then((resp) => { status = resp.status; return resp.json(); })
+          .then((data) => {
+            if (status === 200) {
+              params.successCallback(data.results, data.total_items);
+            } else {
+              showToast(data.message);
+              params.successCallback([], 0);
+            }
+          })
+          .catch((error) => {
+            showToast(error.message);
+          });
+      },
+    };
+
+    grid.gridOptions.api.setDatasource(dataSource);
   }
 
-  return html`<div class="pa2">
+  return html`<div class="pa2 flex flex-column w-100 h-100">
     <div class=" flex justify-center mb4">
       <div class="rux-form-field w-50">
         <input
@@ -36,79 +123,12 @@ export function UserTable(props) {
         />
       </div>
     </div>
-    <div style=${{ overflowY: "auto", maxHeight: "75vh" }}>
-      <table class="rux-table">
-        <tr>
-          <th class="flex items-center">
-            Email${" "}${state.sortDirection === "asc"
-              ? html`<${Icon}
-                  icon="arrow-upward"
-                  onClick=${() => setState({ ...state, sortDirection: "desc" })}
-                />`
-              : html`<${Icon}
-                  icon="arrow-downward"
-                  onClick=${() => setState({ ...state, sortDirection: "asc" })}
-                />`}
-          </th>
-          <th class="tc">Admin?</th>
-          <th class="tc">Password Reset?</th>
-          <th class="tc">Locked?</th>
-          <th>Last Reset</th>
-          <th>Last Login</th>
-          <th></th>
-          <th></th>
-        </tr>
-        ${sortList(props.users)
-          .filter((user) => user.email.includes(state.searchEmail))
-          .map(
-            (user) => html`
-              <tr>
-                <td>${user.email}</td>
-                <td>
-                  <span class="w-100 flex justify-center">
-                    <${Status} status=${user.is_admin ? "standby" : "off"} />
-                  </span>
-                </td>
-                <td>
-                  <span class="w-100 flex justify-center">
-                    <${Status}
-                      status=${user.reset_password ? "standby" : "off"}
-                    />
-                  </span>
-                </td>
-                <td>
-                  <span class="w-100 flex justify-center">
-                    <${Status}
-                      status=${user.locked ? "standby" : "off"}
-                    />
-                  </span>
-                </td>
-                <td>
-                  ${user.last_reset
-                    ? new Date(user.last_reset + "Z").toLocaleString()
-                    : "Never"}
-                </td>
-                <td>
-                  ${user.last_login
-                    ? new Date(user.last_login + "Z").toLocaleString()
-                    : "Never"}
-                </td>
-                <td>
-                  <${Icon}
-                    icon="edit"
-                    onClick=${() => props.rowClicked({ ...user })}
-                  />
-                </td>
-                <td>
-                  <${Icon}
-                    icon="delete"
-                    onClick=${() => props.rowDelete({ ...user })}
-                  />
-                </td>
-              </tr>
-            `
-          )}
-      </table>
+    <div ref=${tableContainerRef} class="h-100 w-100 overflow-hidden flex">
+      <div
+        id="usersGrid"
+        style=${`height: ${tableHeight}px; max-height: ${tableHeight}px; width: 100%`}
+        class="ag-theme-astro"
+      />
     </div>
   </div>`;
 }
